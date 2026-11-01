@@ -11,6 +11,9 @@ for service in "${services[@]}"; do
  fi
 done
 systemctl --user import-environment DISPLAY XAUTHORITY XDG_CURRENT_DESKTOP XDG_SESSION_TYPE
+if [[ $(python "$HOME/.config/eww/scripts/settings.py" display physical_at_login) == True ]]; then
+ "$HOME/.local/bin/toggle-rustdesk-display" physical || true
+fi
 python "$HOME/.local/share/miserable-xfce/configure.py"
 systemctl --user daemon-reload
 systemctl --user start "${services[@]}"

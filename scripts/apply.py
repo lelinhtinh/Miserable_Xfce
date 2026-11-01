@@ -16,6 +16,13 @@ from xfconf import apply_channel
 
 ROOT = Path(__file__).resolve().parents[1]
 
+def merge_xprofile(existing, block):
+    """Manage our X11 environment without replacing the user's login script."""
+    pattern = r'^# BEGIN Miserable Xfce input method\n.*?^# END Miserable Xfce input method\n?'
+    if re.search(pattern, existing, flags=re.M | re.S):
+        return re.sub(pattern, lambda _: block, existing, flags=re.M | re.S)
+    return existing.rstrip() + '\n\n' + block if existing.strip() else block
+
 def restore(backup):
     backup = backup.resolve()
     manifest = json.loads((backup / 'manifest.json').read_text())
@@ -57,8 +64,12 @@ def apply(target, dry_run=False, include_built=False, live=False):
     settings_path = target / personal if (target / personal).is_file() else files[personal]
     with settings_path.open('rb') as file:
         settings = tomllib.load(file)
-    if (target / personal).is_file():
-        files.pop(personal)
+    # These are user-editable preferences, rather than generated desktop resources.
+    preserve = {personal, Path('.config/mimeapps.list'), Path('.config/gtk-3.0/bookmarks'),
+                Path('.config/Thunar/uca.xml')}
+    for relative in list(files):
+        if (relative in preserve or str(relative).startswith('.config/fcitx5/')) and (target / relative).is_file():
+            files.pop(relative)
     if live and target != Path.home().resolve():
         raise SystemExit('--live is only valid for the current home/session')
     if not dry_run and target == Path.home().resolve():
@@ -108,6 +119,8 @@ def apply(target, dry_run=False, include_built=False, live=False):
                 temp.flush()
                 apply_channel(Path(temp.name))
             continue
+        profile_existing = dst.read_text() if relative == Path('.xprofile') and dst.is_file() else ''
+        profile_mode = dst.stat().st_mode & 0o777 if relative == Path('.xprofile') and dst.is_file() else None
         if dst.is_symlink():
             dst.unlink()
         dst.parent.mkdir(parents=True, exist_ok=True)
@@ -120,8 +133,13 @@ def apply(target, dry_run=False, include_built=False, live=False):
             data = data.decode().replace('@HOME@', str(target)).encode()
         except UnicodeError:
             pass
+        if relative == Path('.xprofile'):
+            data = merge_xprofile(profile_existing, data.decode()).encode()
         dst.write_bytes(data)
-        shutil.copymode(src, dst)
+        if profile_mode is not None:
+            dst.chmod(profile_mode)
+        else:
+            shutil.copymode(src, dst)
     subprocess.run([sys.executable, str(target / '.local/share/miserable-xfce/configure.py'), '--home', str(target), *([] if live else ['--offline'])], check=True)
     print(f'Applied {len(files)} files to {target}')
     print('Backup:', backup)

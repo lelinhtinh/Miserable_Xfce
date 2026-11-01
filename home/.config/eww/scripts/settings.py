@@ -28,7 +28,7 @@ def load_settings(file=None):
         raise ValueError('desktop.store_command must be a nonempty array of arguments')
     display = settings.setdefault('display', {})
     for key, value in {'physical_output': 'DP-4', 'virtual_output': 'HDMI-0',
-                       'virtual_mode': '1920x1080', 'virtual_rate': '60'}.items():
+                       'virtual_mode': '1920x1080', 'virtual_rate': '60', 'physical_at_login': True}.items():
         display.setdefault(key, value)
     return settings
 

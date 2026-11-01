@@ -67,3 +67,7 @@ libjpeg-turbo
 libpng
 giflib
 xcape
+fcitx5
+fcitx5-configtool
+fcitx5-gtk
+fcitx5-qt

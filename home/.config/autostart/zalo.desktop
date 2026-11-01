@@ -1,0 +1,10 @@
+[Desktop Entry]
+Type=Application
+Version=1.0
+Name=zalo
+Comment=zalostartup script
+Exec=/usr/bin/zalo --hidden
+StartupNotify=false
+Terminal=false
+TryExec=/usr/bin/zalo
+OnlyShowIn=XFCE;

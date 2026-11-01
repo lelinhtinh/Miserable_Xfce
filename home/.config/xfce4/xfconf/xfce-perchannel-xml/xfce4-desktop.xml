@@ -8,4 +8,8 @@
       <property name="show-trash" type="bool" value="false" />
     </property>
   </property>
-  </channel>
+  <property name="backdrop" type="empty">
+    <property name="single-workspace-mode" type="bool" value="true" />
+    <property name="single-workspace-number" type="int" value="0" />
+  </property>
+</channel>

@@ -17,6 +17,7 @@ import xml.etree.ElementTree as ET
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / 'scripts'))
 import apply as installer
+import render_restore
 
 class DesktopTests(unittest.TestCase):
     def install(self, target, **kwargs):
@@ -57,6 +58,68 @@ class DesktopTests(unittest.TestCase):
             tree=ET.parse(home/'.config/xfce4/xfconf/xfce-perchannel-xml/xfce4-panel.xml')
             self.assertEqual(tree.find("./property[@name='panels']/property[@name='panel-2']/property[@name='size']").get('value'),'52')
             self.assertIn('WebBrowser=firefox',(home/'.config/xfce4/helpers.rc').read_text())
+
+    def test_personal_integrations_and_login_script_survive_reinstall_and_rollback(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            home=Path(tmp)/'user';home.mkdir()
+            outside=Path(tmp)/'login-script';outside.write_text('export KEEP_EXISTING=1\n')
+            outside.chmod(0o600)
+            profile=home/'.xprofile';profile.symlink_to(outside)
+            custom={'.config/mimeapps.list':'[Default Applications]\ntext/html=firefox.desktop\n',
+                    '.config/gtk-3.0/bookmarks':'file:///my/custom/path\n',
+                    '.config/fcitx5/profile':'[Groups/0]\nDefaultIM=unikey\n'}
+            for relative,content in custom.items():
+                p=home/relative;p.parent.mkdir(parents=True,exist_ok=True);p.write_text(content)
+            self.install(home)
+            first_backup=next((home/'.local/state/miserable-xfce/backups').iterdir())
+            self.install(home)
+            self.assertIn('export KEEP_EXISTING=1',profile.read_text())
+            self.assertEqual(profile.read_text().count('# BEGIN Miserable Xfce input method'),1)
+            self.assertIn('QT_IM_MODULE=fcitx',profile.read_text())
+            self.assertEqual(profile.stat().st_mode & 0o777,0o600)
+            self.assertEqual(outside.read_text(),'export KEEP_EXISTING=1\n')
+            for relative,content in custom.items():self.assertEqual((home/relative).read_text(),content)
+            subprocess.run(['sh','-n',str(profile)],check=True)
+            with contextlib.redirect_stdout(io.StringIO()):installer.restore(first_backup)
+            self.assertTrue(profile.is_symlink())
+            self.assertEqual(profile.read_text(),'export KEEP_EXISTING=1\n')
+
+    def test_hardware_restore_renders_only_enabled_features_and_validates_identifiers(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            tmp=Path(tmp);config=tmp/'settings.toml'
+            text=(ROOT/'home/.config/eww/settings.toml').read_text()
+            config.write_text(text.replace('PCI:1:0:0','PCI:2:3:1').replace('alsa_card = "GEW1"','alsa_card = "DAC2"'))
+            target=tmp/'stage';files=render_restore.render(config,target)
+            self.assertEqual(len(files),6)
+            self.assertIn(b'PCI:2:3:1',files['system/etc/X11/xorg.conf.d/90-rustdesk-virtual-monitor.conf'])
+            self.assertIn('0000:02:03.1',(target/'install.sh').read_text())
+            self.assertIn(b'-c DAC2 sset PCM 100%%',files['home/.config/systemd/user/fix-simgot.service'])
+            subprocess.run(['bash','-n',str(target/'install.sh')],check=True)
+            with self.assertRaises(ValueError):render_restore.render(config,target)
+            config.write_text(text.replace('alsa_card = "GEW1"','alsa_card = "bad%name"'))
+            with self.assertRaises(ValueError):render_restore.render(config,tmp/'invalid')
+            self.assertFalse((tmp/'invalid').exists())
+            config.write_text('[restore]\n')
+            self.assertEqual(render_restore.render(config,tmp/'empty'),{})
+
+    def test_generated_restore_installer_uses_target_user_and_keeps_file_backups(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            tmp=Path(tmp);home=tmp/'user';home.mkdir();config=tmp/'config.toml'
+            config.write_text((ROOT/'home/.config/eww/settings.toml').read_text().replace('nvidia_virtual_display = true','nvidia_virtual_display = false'))
+            target=tmp/'stage';render_restore.render(config,target)
+            original=home/'.config/systemd/user/fix-simgot.service';original.parent.mkdir(parents=True);original.write_text('original')
+            bindir=tmp/'bin';bindir.mkdir();log=tmp/'commands'
+            for name in ['sudo','systemctl','pulseaudio','wireplumber','amixer','fcitx5-lotus-server']:
+                path=bindir/name
+                path.write_text('#!/usr/bin/env python3\nimport os,sys,json\nfrom pathlib import Path\nwith Path(os.environ["RESTORE_TEST_LOG"]).open("a") as file:file.write(json.dumps(sys.argv)+"\\n")\n')
+                path.chmod(0o755)
+            identity=bindir/'id';identity.write_text('#!/bin/sh\ncase "$1" in -u) echo 1000;; -un) echo target-user;; esac\n');identity.chmod(0o755)
+            for name in ['bash','dirname','install','python3']:(bindir/name).symlink_to(shutil.which(name))
+            result=subprocess.run(['bash',str(target/'install.sh')],env={**os.environ,'HOME':str(home),'PATH':str(bindir),'RESTORE_TEST_LOG':str(log)},capture_output=True,text=True)
+            self.assertEqual(result.returncode,0,result.stderr)
+            self.assertEqual(original.with_name(original.name+'.~1~').read_text(),'original')
+            self.assertIn('fcitx5-lotus-server@target-user.service',log.read_text())
+            self.assertIn('GST_PLUGIN_LOADING_WHITELIST',(home/'.config/systemd/user/pulseaudio.service.d/80-gstreamer-audio-only.conf').read_text())
 
     def test_data_path_with_spaces_and_missing_mount(self):
         with tempfile.TemporaryDirectory() as tmp:

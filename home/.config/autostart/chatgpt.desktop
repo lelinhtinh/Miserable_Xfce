@@ -1,0 +1,9 @@
+[Desktop Entry]
+Type=Application
+Name=ChatGPT
+Exec=chatgpt
+Icon=chatgpt
+OnlyShowIn=XFCE;
+Terminal=false
+StartupNotify=true
+TryExec=chatgpt

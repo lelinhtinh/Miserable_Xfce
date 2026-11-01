@@ -1,6 +1,6 @@
 # Tuỳ chỉnh cá nhân
 
-File duy nhất cần sửa là **`~/.config/eww/settings.toml`** sau khi cài; giá trị ban đầu nằm ở `home/.config/eww/settings.toml` trong repo. Đây là TOML, không phải shell: không cần escape khoảng trắng trong đường dẫn. Không nhập mật khẩu/token vào file này.
+File cấu hình chính là **`~/.config/eww/settings.toml`** sau khi cài; giá trị ban đầu nằm ở `home/.config/eww/settings.toml` trong repo. Đây là TOML, không phải shell: không cần escape khoảng trắng trong đường dẫn. Không nhập mật khẩu/token vào file này.
 
 ```toml
 [storage]
@@ -48,6 +48,7 @@ virtual_rate = "60"
 | `desktop.browser`, `terminal` | Tên helper Xfce trong `/usr/share/xfce4/helpers/`; không kèm đuôi `.desktop`. Ứng dụng cần được cài sẵn. |
 | `desktop.pinned_apps` | Desktop ID ghim ở Docklike, không kèm `.desktop`. |
 | `display.physical_output`, `virtual_output` | Tên cổng thật/ảo từ `xrandr --query`. Hai cổng phải khác nhau; cổng ảo phải được hệ thống cung cấp sẵn. |
+| `display.physical_at_login` | Chọn màn hình thật trước khi khởi động widget ở lần đăng nhập; mặc định true. |
 | `display.virtual_mode`, `virtual_rate` | Độ phân giải/tần số có sẵn trên cổng ảo, mặc định `1920x1080` và `60`. |
 | `desktop.store_command` | Mảng lệnh và đối số mở Software Manager, ví dụ `["pamac-manager"]`, `["bauh"]`. Không diễn giải shell. |
 
@@ -73,3 +74,9 @@ Hình nền trong TOML được áp dụng khi đăng nhập và khi chạy lệ
 - **Ctrl+Alt+P**: chuyển về màn hình thật.
 
 Script `~/.local/bin/toggle-rustdesk-display` đọc `[display]` mỗi lần chạy. Máy khác cần đổi tên cổng theo `xrandr --query`; script không tự tạo màn hình ảo hoặc cài driver RustDesk. Nếu file TOML cũ chưa có `[display]`, các giá trị mặc định ở trên được dùng. Script kiểm tra cổng đích đang connected và bật cổng đích thành công trước khi tắt cổng còn lại. Nhật ký: `${XDG_RUNTIME_DIR}/display-toggle-${UID}.log`.
+
+## Bộ gõ, bookmark và cấu hình phần cứng
+
+Các file cấu hình Fcitx5, MIME và bookmark cũng là cấu hình cá nhân; installer giữ file đang có khi cài lại. Sửa bằng GUI tương ứng hoặc file riêng được liệt kê trong [restore.md](restore.md). `.xprofile` được ghép block Fcitx5, giữ nội dung khác.
+
+Các trường `display.nvidia_bus_id`, `nvidia_physical`, `nvidia_virtual` và section `[restore]` chỉ dùng khi dựng cấu hình phần cứng bằng `scripts/render_restore.py`. Danh sách khoá, điều kiện audio/GPU và cách áp dụng nằm ở [hướng dẫn khôi phục](restore.md). Nếu TOML cá nhân cũ chưa có các trường mới, bổ sung từ file mẫu trong repo trước khi dùng bước dựng riêng.

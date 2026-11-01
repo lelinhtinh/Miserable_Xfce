@@ -1,0 +1,7 @@
+# BEGIN Miserable Xfce input method
+if [ "${XDG_SESSION_TYPE:-x11}" = x11 ]; then
+    export GTK_IM_MODULE=fcitx
+    export QT_IM_MODULE=fcitx
+    export XMODIFIERS=@im=fcitx
+fi
+# END Miserable Xfce input method

@@ -1,0 +1,20 @@
+[Added Associations]
+text/vnd.trolltech.linguist=vlc.desktop;
+video/quicktime=vlc.desktop;
+audio/vnd.wave=audacious.desktop;
+audio/mp4=audacious.desktop;
+x-scheme-handler/http=xfce4-web-browser.desktop;
+x-scheme-handler/https=xfce4-web-browser.desktop;
+text/csv=com.microsoft.VSCode.desktop;onlyoffice-desktopeditors.desktop;
+inode/directory=com.microsoft.VSCode.desktop;
+
+[Default Applications]
+text/html=google-chrome.desktop
+text/vnd.trolltech.linguist=vlc.desktop;
+video/quicktime=vlc.desktop;
+x-scheme-handler/bruno=bruno.desktop
+x-scheme-handler/codex=chatgpt.desktop
+x-scheme-handler/http=xfce4-web-browser.desktop
+x-scheme-handler/https=xfce4-web-browser.desktop
+x-scheme-handler/postman=Postman.desktop
+x-scheme-handler/zalo=zalo-for-linux.desktop

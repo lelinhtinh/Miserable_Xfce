@@ -28,3 +28,18 @@ physical_output = "DP-4"
 virtual_output = "HDMI-0"
 virtual_mode = "1920x1080"
 virtual_rate = "60"
+
+physical_at_login = true
+# Only used by scripts/render_restore.py, never installed by normal --apply.
+nvidia_bus_id = "PCI:1:0:0"
+nvidia_physical = "DFP-5"
+nvidia_virtual = "DFP-0"
+
+[restore]
+nvidia_virtual_display = true
+lotus_server = true
+pulse_codec_filter = true
+wireplumber_video_only = true
+dac_volume = true
+alsa_card = "GEW1"
+alsa_control = "PCM"

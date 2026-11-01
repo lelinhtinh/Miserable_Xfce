@@ -1,0 +1,11 @@
+[Unit]
+Description=Set configured USB DAC hardware mixer to 100 percent
+ConditionPathExists=/proc/asound/@ALSA_CARD@
+
+[Service]
+Type=oneshot
+ExecStartPre=/bin/sleep 3
+ExecStart=/usr/bin/amixer -c @ALSA_CARD@ sset @ALSA_CONTROL@ 100%%
+
+[Install]
+WantedBy=default.target

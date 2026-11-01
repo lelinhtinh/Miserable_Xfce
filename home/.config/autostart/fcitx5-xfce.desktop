@@ -1,0 +1,7 @@
+[Desktop Entry]
+Type=Application
+Name=Fcitx5 for Xfce
+Exec=fcitx5 -d
+OnlyShowIn=XFCE;
+Terminal=false
+TryExec=fcitx5

@@ -53,3 +53,7 @@ Báo cáo chi tiết và bản sao trước sửa nằm trong `.build/operations
 Bản sao trước reset có Ctrl+Alt+M/P gọi `toggle-rustdesk-display`; cấu hình đưa vào repo đã bỏ sót hai binding này. Đã khôi phục trực tiếp qua xfconf, đưa script vào `home/.local/bin/` và bổ sung `[display]` trong file TOML cùng tài liệu. Script cũ trên máy vẫn còn trước khi sửa; đây là lỗi mất binding khi reset/apply, không phải driver mất sau reboot.
 
 11 kiểm thử đạt, gồm mô phỏng chuyển cả hai chiều với cổng tuỳ chỉnh, không tắt màn hình đang dùng nếu bật cổng đích lỗi hoặc cổng đích disconnected. Đã kiểm tra binding thật và hai cổng DP-4/HDMI-0 đang connected. Chưa kích hoạt chuyển cổng trên phiên đang làm việc trong lượt sửa này.
+
+## Đối chiếu lại snapshot
+
+Đã rà soát lại home snapshot và root #651 sau khi khôi phục phím chuyển màn hình. Kết quả, cấu hình còn thiếu đã bổ sung và giới hạn kiểm chứng được ghi tại [snapshot-audit.md](snapshot-audit.md); hướng dẫn dùng bộ gõ/âm thanh/màn hình ảo trên máy đích tại [restore.md](restore.md). Tổng cộng 14 kiểm thử đạt.

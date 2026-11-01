@@ -46,7 +46,7 @@ Apply tạo bản sao lưu file bị thay tại `~/.local/state/miserable-xfce/b
 
 ## Cấu hình và phụ thuộc
 
-Xem [cấu hình cá nhân](settings.md) trước khi cài cho tài khoản khác. Chrome/VS Code/Pamac là lựa chọn trong TOML; cài các app này hoặc đổi sang app đã có. Bộ gõ Fcitx, audio stack, DAC Simgot và driver tạo màn hình ảo RustDesk thuộc cấu hình máy, không bị installer desktop tự thay thế. Script/phím tắt chuyển màn hình thật/ảo được cài từ repo; tên cổng và mode nằm trong `[display]` của TOML. Chúng nằm trong snapshot home/hệ thống để phục hồi máy nguồn.
+Xem [cấu hình cá nhân](settings.md) và [tuỳ chỉnh từ snapshot](restore.md) trước khi cài cho tài khoản khác. Chrome/VS Code/Pamac là lựa chọn trong TOML; cài các app này hoặc đổi sang app đã có. Cấu hình Fcitx5/Lotus, MIME/bookmark và autostart ứng dụng được bổ sung từ snapshot. Lotus cần được cài thêm theo hướng dẫn; các file cá nhân đã có được giữ nguyên. Audio stack, DAC Simgot, server Lotus và driver tạo màn hình ảo NVIDIA có bộ dựng/cài cấu hình riêng trong `scripts/render_restore.py`, đọc `[display]`/`[restore]` của TOML. Apply desktop không tự đổi audio provider hoặc Xorg. Script/phím tắt chuyển màn hình thật/ảo được cài từ repo; tên cổng và mode nằm trong `[display]`.
 
 Giữ các nguồn đang cần: Eww (vá thời gian IPC/compatibility), Skippy + Chipmunk (vá Ctrl+Tab/icon/DISPLAY), plugin PulseAudio (chuyển stream và chụp menu), Cortile release x86_64, xcape từ package và Numix/Numix-Circle. Chỉ giữ GTK 3/4 của Lavanda, Miserable-Chrome, font đang dùng và một hình nền được chọn. Đã bỏ profile riêng, bộ icon/theme cũ, widget Gmail/Spotify helper cũ, script Picom fork và các bản cài đa distro không dùng.
 
@@ -69,3 +69,5 @@ python -m unittest discover -s tests -v
 ```
 
 Thông tin snapshot và kết quả thực thi trên máy nguồn được ghi ở [lần kiểm chứng hiện tại](validation.md).
+
+Đã đối chiếu lại với snapshot trước reset; xem [bảng kết quả và các phần được bổ sung](snapshot-audit.md).
