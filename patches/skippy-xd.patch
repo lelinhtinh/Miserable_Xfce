@@ -1,0 +1,47 @@
+--- a/src/clientwin.c
++++ b/src/clientwin.c
+@@ -1087,7 +1087,11 @@
+ 		printfdf(false, "(): keycode: %d:", evk->keycode);
+ 
+ 		if (cw->mainwin->pressed_key) {
+-			if (arr_keycodes_includes(cw->mainwin->keycodes_Cancel, evk->keycode))
++			/* Ctrl+Tab toggles Overview off even while it owns the keyboard. */
++            bool control_tab = evk->keycode == XKeysymToKeycode(ps->dpy, XK_Tab)
++                && (evk->state & ControlMask)
++                && !(evk->state & (ShiftMask | Mod1Mask | Mod4Mask));
++            if (control_tab || arr_keycodes_includes(cw->mainwin->keycodes_Cancel, evk->keycode))
+ 			{
+ 				mw->refocus = true;
+ 				return 1;
+--- a/src/img-xlib.c
++++ b/src/img-xlib.c
+@@ -1,6 +1,6 @@
+ #include "skippy.h"
+ 
+-#define ICON_PROP_MAXLEN 1048576
++#define ICON_PROP_MAXLEN 4194304
+ 
+ pictw_t *
+ simg_load_icon(session_t *ps, Window wid, int desired_size) {
+--- a/src/skippy.c
++++ b/src/skippy.c
+@@ -3044,7 +3044,10 @@
+ 		// null terminator
+ 		int pipeStrLen0 = 1;
+ 
+-		char *xev = getenv("DISPLAY");
++		char *xev = mstrdup(getenv("DISPLAY"));
++        size_t display_len = strlen(xev);
++        if (display_len >= 2 && strcmp(xev + display_len - 2, ".0") == 0)
++            xev[display_len - 2] = '\0';
+ 		pipeStrLen0 += strlen(xev);
+ 
+ 		const char * path = config_get(config, "system", "daemonPath", "/tmp/skippy-xd-fifo");
+@@ -3061,6 +3064,7 @@
+ 
+ 		ps->o.pipePath = pipePath;
+ 		ps->o.pipePath2 = pipePath2;
++        free(xev);
+ 	}
+ 
+ 	{

@@ -1,3 +1,15 @@
+configuration {
+    show-icons: true;
+    drun-display-format: "<b>{name}</b>&#x0a;<span size='small' alpha='65%'>{exec}</span>";
+    hover-select: true;
+    me-select-entry: "";
+    me-accept-entry: "MousePrimary";
+    kb-row-select: "";
+    kb-cancel: "Escape,Control+g,Control+bracketleft,Control+space";
+    matching: "fuzzy";
+    scroll-method: 1;
+}
+
 /*******************************************************************************
  * MACOS SPOTLIGHT LIKE DARK THEME FOR ROFI 
  * User                 : LR-Tech               
@@ -30,7 +42,7 @@
 window {
     background-color:   @bg1;
     location:       center;
-    width:          600;
+    width:          640;
     border-radius:  10px;
 }
 
@@ -47,7 +59,7 @@ inputbar {
 
 icon-search {
     expand:     false;
-    filename:   "search-symbolic";
+    filename:   "system-search";
     size: 24px;
 }
 
@@ -73,7 +85,7 @@ textbox {
 }
 
 listview {
-    lines:      8;
+    lines:      7;
     columns:    1;
     margin:     6px;
     fixed-height:   false;
@@ -82,7 +94,7 @@ listview {
 }
 
 element {
-    padding:            14px 18px;
+    padding:            10px 18px;
     spacing:            16px;
     background-color:   transparent;
     border-radius:      6px;
@@ -98,7 +110,7 @@ element selected normal, element selected active {
 }
 
 element-icon {
-    size:   1em;
+    size:   32px;
 }
 
 element-text {

@@ -1,0 +1,7 @@
+[Desktop Entry]
+Type=Application
+Name=System stats
+Exec=@HOME@/.local/share/miserable-xfce/toggle-widget.sh sysstat
+Icon=@HOME@/.local/share/miserable-xfce/assets/activity.svg
+Terminal=false
+StartupNotify=false

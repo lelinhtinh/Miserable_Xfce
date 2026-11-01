@@ -1,13 +1,25 @@
-#!/bin/bash
+#!/usr/bin/env python3
+"""Query exactly the configured filesystem; missing mounts are not replaced by /home."""
+import os
+from pathlib import Path
+import sys
+from settings import load_settings
 
-## Get Used Disk Space of the given partition
+def disk_value(path, mode):
+    try:
+        stat = os.statvfs(path)
+    except OSError:
+        return '—' if mode != '--used_perc' else '0'
+    total = stat.f_blocks * stat.f_frsize
+    used = (stat.f_blocks - stat.f_bfree) * stat.f_frsize
+    if mode == '--used_perc':
+        denominator = used + stat.f_bavail * stat.f_frsize
+        return str(round(100 * used / denominator)) if denominator else '0'
+    amount = total if mode == '--total' else used
+    return f'{amount / 1024**3:.1f} GiB' if amount < 1024**4 else f'{amount / 1024**4:.1f} TiB'
 
-if [[ "$2" == "--used_value" ]]; then
-    used=$(df -h $1 | awk '{print $3}' | tail -n 1 | sed 's/G/GB/')
-elif [[ "$2" == "--used_perc" ]]; then
-    used=$(df -h $1 | awk '{print $5}' | tail -n 1 | sed 's/.$//')
-elif [[ "$2" == "--total" ]]; then
-    used=$(df -h $1 | awk '{print $2}' | tail -n 1 | sed 's/G/GB/')
-fi
-
-echo "$used"
+if __name__ == '__main__':
+    path = load_settings()['storage']['data_path'] if sys.argv[1] == '--data' else sys.argv[1]
+    if sys.argv[2] not in ('--used_perc', '--used_value', '--total'):
+        raise SystemExit('Expected --used_perc, --used_value or --total')
+    print(disk_value(Path(path).expanduser(), sys.argv[2]))

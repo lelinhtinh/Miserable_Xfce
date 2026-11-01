@@ -1,0 +1,12 @@
+[Unit]
+Description=Cortile automatic window tiling
+After=graphical-session.target
+
+[Service]
+ExecStartPre=/usr/bin/python @HOME@/.config/cortile/start-disabled.py
+ExecStart=@HOME@/.local/bin/cortile
+Restart=on-failure
+RestartSec=3
+
+[Install]
+WantedBy=default.target

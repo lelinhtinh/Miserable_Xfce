@@ -1,0 +1,79 @@
+#!/usr/bin/python
+import hashlib,json,os,re,subprocess,sys
+from pathlib import Path
+from urllib.parse import urlparse,parse_qs
+from gi.repository import Gio,GLib
+root=Path(os.environ.get('XDG_CACHE_HOME',str(Path.home()/'.cache')))/'eww/media';root.mkdir(parents=True,exist_ok=True)
+fallback=root/'fallback.svg'
+if not fallback.exists():fallback.write_text('<svg xmlns="http://www.w3.org/2000/svg" width="96" height="96"><rect width="96" height="96" rx="10" fill="#2a2b36"/><path d="M57 24v40a10 10 0 1 1-6-9V31l24-6v32a10 10 0 1 1-6-9V17z" fill="#bb9af7"/></svg>')
+if len(sys.argv)>2 and sys.argv[1]=='--cover':
+ import fcntl
+ url=sys.argv[2];key=hashlib.sha256(url.encode()).hexdigest();dest=root/(key+'.jpg')
+ with (root/(key+'.lock')).open('w') as lock:
+  try:fcntl.flock(lock,fcntl.LOCK_EX|fcntl.LOCK_NB)
+  except BlockingIOError:sys.exit(0)
+  if dest.exists():sys.exit(0)
+  tmp=root/(key+'.tmp')
+  r=subprocess.run(['curl','--fail','--silent','--location','--max-time','10','--max-filesize','5242880',url,'-o',str(tmp)])
+  if r.returncode==0:
+   try:
+    from gi.repository import GdkPixbuf
+    GdkPixbuf.Pixbuf.new_from_file(str(tmp));tmp.replace(dest)
+   except Exception:tmp.unlink(missing_ok=True)
+  else:tmp.unlink(missing_ok=True)
+ sys.exit(0)
+
+def choose():
+ bus=Gio.bus_get_sync(Gio.BusType.SESSION,None)
+ names=bus.call_sync('org.freedesktop.DBus','/org/freedesktop/DBus','org.freedesktop.DBus','ListNames',None,None,0,1500,None).unpack()[0]
+ players=[]
+ for name in names:
+  if not name.startswith('org.mpris.MediaPlayer2.') or name.endswith('.playerctld'):continue
+  try:
+   p=bus.call_sync(name,'/org/mpris/MediaPlayer2','org.freedesktop.DBus.Properties','GetAll',GLib.Variant('(s)',('org.mpris.MediaPlayer2.Player',)),None,0,700,None).unpack()[0]
+   m=p.get('Metadata',{});status=p.get('PlaybackStatus','Stopped')
+   artists=m.get('xesam:artist',[])
+   artist=', '.join(str(x) for x in artists if x) if isinstance(artists,(list,tuple)) else str(artists)
+   # Browsers may keep an empty MPRIS endpoint after their media tab closes.
+   if status not in ('Playing','Paused'):continue
+   if not any((m.get('xesam:title'),artist,m.get('xesam:url'),m.get('mpris:artUrl'))):continue
+   score={'Playing':100,'Paused':50}.get(status,0)+bool(artist)*10+bool(m.get('mpris:artUrl'))*3+bool(m.get('xesam:title'))
+   players.append((score,name,status,m,artist))
+  except GLib.Error:continue
+ return max(players,key=lambda p:p[0]) if players else None
+
+try:player=choose()
+except Exception:player=None
+if len(sys.argv)>2 and sys.argv[1]=='--action':
+ action=sys.argv[2]
+ if player and action in ['play-pause','next','previous']:
+  subprocess.run(['playerctl','--player='+player[1].removeprefix('org.mpris.MediaPlayer2.'),action],check=False)
+ sys.exit(0)
+value={'active':False,'title':'Không phát nhạc','artist':'','source':'Trình phát nhạc','status':'Stopped','art':str(fallback),'play_icon':'media-playback-start-symbolic','tooltip':'Chưa có trình phát đang hoạt động'}
+if player:
+ _,name,status,m,artist=player
+ url=m.get('xesam:url','')
+ try:
+  bus=Gio.bus_get_sync(Gio.BusType.SESSION,None)
+  identity=bus.call_sync(name,'/org/mpris/MediaPlayer2','org.freedesktop.DBus.Properties','Get',GLib.Variant('(ss)',('org.mpris.MediaPlayer2','Identity')),None,0,700,None).unpack()[0]
+ except GLib.Error:
+  identity=re.sub(r'\.instance.*$','',name.removeprefix('org.mpris.MediaPlayer2.'))
+ from urllib.parse import unquote
+ title=m.get('xesam:title') or unquote(Path(urlparse(url).path).name) or 'Đang phát nội dung'
+ source='YouTube Music' if 'music.youtube.com' in url or 'YouTube Music' in title else 'YouTube' if 'youtube.com' in url else str(identity)
+ title=re.sub(r'\s*[|–-]\s*YouTube Music$','',title)
+ arturl=m.get('mpris:artUrl','')
+ if not arturl and urlparse(url).hostname in ['music.youtube.com','www.youtube.com','youtube.com']:
+  video=parse_qs(urlparse(url).query).get('v',[''])[0]
+  if re.fullmatch(r'[A-Za-z0-9_-]{11}',video):arturl=f'https://i.ytimg.com/vi/{video}/hqdefault.jpg'
+ art=str(fallback)
+ if arturl.startswith('file://'):
+  from urllib.parse import unquote
+  local=Path(unquote(urlparse(arturl).path))
+  if local.is_file():art=str(local)
+ elif arturl.startswith(('https://','http://')):
+  key=hashlib.sha256(arturl.encode()).hexdigest();cached=root/(key+'.jpg')
+  if cached.exists():art=str(cached)
+  else:subprocess.Popen([sys.executable,__file__,'--cover',arturl],stdin=subprocess.DEVNULL,stdout=subprocess.DEVNULL,stderr=subprocess.DEVNULL,start_new_session=True)
+ value.update(active=True,title=title,artist=artist,source=source,status=status,art=art,play_icon='media-playback-pause-symbolic' if status=='Playing' else 'media-playback-start-symbolic',tooltip='\n'.join(x for x in [source,title,artist,'Đang phát' if status=='Playing' else 'Đã tạm dừng' if status=='Paused' else 'Đã dừng'] if x))
+print(json.dumps(value,ensure_ascii=False))

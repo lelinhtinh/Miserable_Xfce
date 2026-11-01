@@ -35,7 +35,7 @@ button {
 	transition: 0.15s;
 	border-radius: 6px;
 	padding: 8px 10px;
-	margin: 2 6;
+	margin: 2px 6px;
 	font-size: 13px;
 
 	&:hover {
@@ -62,7 +62,7 @@ circular-progress {
 	margin: 6px;
 	padding: 12px 15px;
 	border-radius: 6px;
-	font-size: 13;
+	font-size: 13px;
 	box-shadow: inset 0 0px 2px rgba($foreground, 0.08);
 }
 
@@ -206,13 +206,13 @@ calendar {
 
 .weather {
 	button {
-		margin: 2;
-		padding: 8;
+		margin: 2px;
+		padding: 8px;
 	}
 
 	.weathicon {
 		font-family: "JetBrainsMono Nerd Font";
-		font-size: 36;
+		font-size: 36px;
 	}
 	.title {
 		font-size: 16px;
@@ -238,48 +238,43 @@ calendar {
 
 
 .music-player {
-    .song-art {
-        background-size: 58% 100%;
-        background-repeat: no-repeat;
-        border-radius: 6px;
-        
-        min-width: 260px;
-        
-        .music-info {
-            all: unset;
-            background-color: transparent;
-            border-radius: 6px;
-            margin-top: 10px;
-            margin-left: -9.1rem;
+  padding: 10px;
+  .music-content { padding: 3px; }
+  .music-source { color: $accent; font-size: 11px; }
+  .music-title { font-size: 14px; font-weight: bold; }
+  .music-artist { color: $foreground; font-size: 12px; }
+  .music-status { color: $foreground; font-size: 11px; }
+  .song-controls {
+    margin-left: 8px;
+    border-radius: 6px;
+    background-color: $background-alt-light;
+    button { margin: 0; padding: 7px; background-color: transparent; }
+    button:hover { background-color: $accent; color: $background-alt; }
+  }
+}
+/* Sidebar quick actions */
+.quick-actions .quick-action {
+  margin: 6px;
+  padding: 12px 8px;
+  border-radius: 6px;
+  min-width: 48px;
+  background-color: $background;
+  box-shadow: inset 0 0 2px rgba($foreground, 0.08);
+  color: $foreground;
+  font-size: 12px;
+}
+.quick-actions .quick-action:hover {
+  background-color: $background-alt-light;
+  color: $accent;
+}
+.quick-actions .quick-action:active {
+  background-color: $accent;
+  color: $background-alt;
+}
 
-            .np {
-                margin-bottom: 6px;
-            }
-            .title {
-                font-size: 16px;
-                font-weight: bolder;
-                    }
-                    .artist {
-                        color: $foreground;
-                    }
-                }
-            }
-            
-            .song-controls {
-                background-color: $background-alt-light;
-                padding: 0em ;
-                border-radius: 6px;
-                margin: 12px;
-        
-                button {
-                    font-size: 24px;
-                    background-color: transparent;
-                    margin: 0;
-                }
-
-                button:hover {
-                	background-color: $accent;
-                	color: $background-alt;
-                }
-            }
-        }
+/* Clickable Sidebar tiles retain their existing size and colors. */
+.statusbox-button, .statusbox-button:hover, .statusbox-button:active {
+  margin: 0; padding: 0; border: none; border-radius: 0;
+  background-color: transparent; background-image: none; box-shadow: none;
+}
+.statusbox-button:hover .statusbox { box-shadow: inset 0 0 0 1px rgba($foreground, 0.4); }

@@ -1,72 +1,53 @@
 ;; ***** DISK USAGE ********************************************
 
-(defpoll DISK_ROOT_TOTAL :interval "1s"  "./scripts/disk / --total")
-(defpoll DISK_ROOT_USED :interval "1s"  "./scripts/disk / --used_value")
-(defpoll DISK_ROOT_USED_PERC :interval "1s"  "./scripts/disk / --used_perc")
-(defpoll DISK_HOME_TOTAL :interval "1s"  "./scripts/disk ~/ --total")
-(defpoll DISK_HOME_USED :interval "1s"  "./scripts/disk ~/ --used_value")
-(defpoll DISK_HOME_USED_PERC :interval "1s"  "./scripts/disk ~/ --used_perc")
+(defpoll DISK_ROOT_TOTAL :initial "0" :interval "1s"  "./scripts/disk / --total")
+(defpoll DISK_ROOT_USED :initial "0" :interval "1s"  "./scripts/disk / --used_value")
+(defpoll DISK_ROOT_USED_PERC :initial "0" :interval "1s"  "./scripts/disk / --used_perc")
+(defpoll DISK_DATA_TOTAL :initial "0" :interval "1s"  "./scripts/disk --data --total")
+(defpoll DISK_DATA_USED :initial "0" :interval "1s"  "./scripts/disk --data --used_value")
+(defpoll DISK_DATA_USED_PERC :initial "0" :interval "1s"  "./scripts/disk --data --used_perc")
 
 
 ;; ***** CPU MEMORY AND SWAP ***********************************
 
-(defpoll CPU :interval "0.5s" "./scripts/cpu")
-(defpoll MEM :interval "0.5s" "./scripts/mem")
-(defpoll MEM_VALUE :interval "1s" "./scripts/mem --value")
-(defpoll PROC :interval "1s" "./scripts/processes")
-(defpoll SWAP_TOTAL :interval "1s"  "./scripts/swap --total")
-(defpoll SWAP_USED :interval "1s"  "./scripts/swap --used")
-(defpoll SWAP_PERC :interval "1s"  "./scripts/swap --perc")
+(defpoll CPU :initial "0" :interval "0.5s" "./scripts/cpu")
+(defpoll MEM :initial "0" :interval "0.5s" "./scripts/mem")
+(defpoll MEM_VALUE :initial "0" :interval "1s" "./scripts/mem --value")
+(defpoll PROC :initial "0" :interval "1s" "./scripts/processes")
+(defpoll SWAP_TOTAL :initial "0" :interval "1s"  "./scripts/swap --total")
+(defpoll SWAP_USED :initial "0" :interval "1s"  "./scripts/swap --used")
+(defpoll SWAP_PERC :initial "0" :interval "1s"  "./scripts/swap --perc")
 
 
-;; ***** BATTERY AND WIFI **************************************
+;; ***** SIDEBAR HOME STORAGE AND INTERNET LATENCY **************
 
-(defpoll BAT_PERC :interval "1s" "./scripts/battery --perc")
-(defpoll BAT_ICON :interval "1s" "./scripts/battery --icon")
-(defpoll BAT_STATUS :interval "1s" "./scripts/battery --stat")
-(defpoll BAT_CLASS :interval "1s" "./scripts/battery --class")
-(defpoll SSID :interval "1s" "./scripts/wifi --ssid")
-(defpoll WIFI_STATUS :interval "1s" "./scripts/wifi --status")
-(defpoll WIFI_ICON :interval "1s" "./scripts/wifi --icon")
-
+(defpoll homefree :interval "30s" :initial "{\"value\": \"\\u2014 GiB\", \"description\": \"/home\", \"css\": \"healthy\", \"tooltip\": \"\\u0110ang c\\u1eadp nh\\u1eadt\"}" "./scripts/sidebar-info.py disk")
+(defpoll internetping :interval "10s" :initial "{\"value\": \"\\u2014 ms\", \"description\": \"Internet\", \"css\": \"online\", \"tooltip\": \"\\u0110ang \\u0111o \\u0111\\u1ed9 tr\\u1ec5\"}" "./scripts/sidebar-info.py ping")
 
 ;; ***** CALENDAR VARIABLES ************************************
 
-(defpoll calendar_day :interval "10h" "date '+%d'")
-(defpoll calendar_weekday :interval "10h" "date '+%A'")
-(defpoll calendar_month :interval "10h" "date '+%m'")
-(defpoll calendar_month2 :interval "10h" "date '+%B'")
-(defpoll calendar_year :interval "10h" "date '+%Y'")
-(defpoll month_year :interval "24h" "date '+%B %Y'")
+(defpoll calendar_day :initial "28" :interval "10h" "date '+%d'")
+(defpoll calendar_weekday :initial "Wednesday" :interval "10h" "date '+%A'")
+(defpoll calendar_month :initial "10" :interval "10h" "date '+%m'")
+(defpoll calendar_month2 :initial "October" :interval "10h" "date '+%B'")
+(defpoll calendar_year :initial "2026" :interval "10h" "date '+%Y'")
 
 
 ;; ***** USER PROFILE VARS *************************************
 
 (defpoll username :interval "69420s" `whoami`)
-(defpoll host :interval "69420s" `hostname`)
 (defpoll uptime :interval "1s" `./scripts/uptime`)
 
 
 ;; ***** WEATHER VARIABLES *************************************
 
-(defpoll weathericon :interval "1h" "./scripts/weather --icon")
-(defpoll tempt :interval "1h" "./scripts/weather --temp" )
-(defpoll descr :interval "1h" "./scripts/weather --desc")
-(defpoll location :interval "1h" "./scripts/weather --location")
+(defpoll weatherdata :interval "60s" :initial "{\"location\": \"Thời tiết\", \"temp\": \"—\", \"description\": \"Đang cập nhật\", \"icon\": \"weather-overcast-symbolic\", \"tooltip\": \"Dữ liệu: Open-Meteo · open-meteo.com\"}" "@HOME@/.config/eww/scripts/weather")
 
 
 ;; ***** MUSIC PLAYER VARIABLES ********************************
 
-(defpoll art :interval "5s" "./scripts/spotify_helper --echo_song_art")
-(defpoll song_art :interval "5s" "./scripts/spotify_helper --get_song_art")
-(defpoll song_artist :interval "5s" "./scripts/spotify_helper --get_song_artist")
-(defpoll song_title :interval "2s" "./scripts/spotify_helper --get_song_title")
-(defpoll player_status :interval "2s" "./scripts/spotify_helper --get_player_status")
+(defpoll musicdata :interval "2s" :initial "{\"active\": false, \"title\": \"Đang tải…\", \"artist\": \"\", \"source\": \"Trình phát nhạc\", \"status\": \"Stopped\", \"art\": \"@HOME@/.cache/eww/media/fallback.svg\", \"play_icon\": \"media-playback-start-symbolic\", \"tooltip\": \"Trình phát nhạc\"}" "@HOME@/.config/eww/scripts/media")
 
 
-;; ***** MISC STUFFS *******************************************
 
-;; Gmail unread count
-(defpoll gmail :interval "1800s" "./scripts/gmail.sh")
-;; Available updates (for pacman only)
-(defpoll UPDATES :interval "3600s" "./scripts/updates")
+(defpoll DATA_LABEL :initial "Data" :interval "5s" "./scripts/settings.py storage data_label")

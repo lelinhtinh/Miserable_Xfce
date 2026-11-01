@@ -1,0 +1,11 @@
+[Unit]
+Description=Window Overview with cached live previews
+After=graphical-session.target
+
+[Service]
+ExecStart=@HOME@/.local/bin/skippy-xd --start-daemon
+Restart=on-failure
+RestartSec=2
+
+[Install]
+WantedBy=default.target

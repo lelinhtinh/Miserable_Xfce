@@ -1,0 +1,6 @@
+[Desktop Entry]
+Type=Application
+Name=Miserable Xfce session services
+Exec=@HOME@/.local/share/miserable-xfce/start-session.sh
+OnlyShowIn=XFCE;
+Terminal=false

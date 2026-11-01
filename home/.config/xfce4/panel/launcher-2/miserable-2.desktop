@@ -1,0 +1,7 @@
+[Desktop Entry]
+Type=Application
+Name=Applications
+Exec=@HOME@/.local/share/miserable-xfce/applications.py
+Icon=@HOME@/.local/share/miserable-xfce/assets/ghost.svg
+Terminal=false
+StartupNotify=false

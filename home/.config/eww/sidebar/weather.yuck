@@ -1,44 +1,11 @@
-(defwidget weather [] 
-	(box :class "genwin weather"
-  		(box :orientation "v"
-  		  	 :space-evenly "false"
-
-  		  	(box :orientation "v"
-  		  		 :space-evenly "false"
-
-  		  		(box 	:space-evenly "false"
-  		  				:halign "begin"
-  		  			(label  :class "location"
-							:wrap "true"
-							:text " ${location}"
-							)
-  		  			(button :class "reload"
-  		  		 		 	:onclick "scripts/weather_reload" 
-      					(label  :text ""))
-
-				)
-
-				(box :space-evenly "false"
-					 :orientation "v"
-					(label  :class "weathicon"
-							:text "${weathericon}"
-							:halign "start"
-					)
-					(box :orientation "v"
-						 :space-evenly "false"
-						(label  :class "description"
-								:text "${tempt}°C"
-								:halign "start"
-							)
-
-						(label  :class "title"
-								:wrap "true"
-								:text descr
-								:halign "start"
-							)
-					)	
-				)			
-			)
-		)
-	)
-)
+(defwidget weather []
+  (box :class "genwin weather" :tooltip {weatherdata.tooltip}
+       :orientation "v" :space-evenly false :spacing 3
+    (box :orientation "h" :space-evenly false
+      (label :text {weatherdata.location} :limit-width 18 :wrap true :halign "start" :hexpand true)
+      (button :class "reload" :tooltip "Cập nhật thời tiết"
+              :onclick "@HOME@/.config/eww/scripts/weather_reload"
+        (image :icon "view-refresh-symbolic" :icon-size "menu")))
+    (image :icon {weatherdata.icon} :icon-size "large-toolbar" :halign "start")
+    (label :class "description" :text "${weatherdata.temp}°C" :halign "start")
+    (label :class "title" :text {weatherdata.description} :halign "start" :wrap true)))

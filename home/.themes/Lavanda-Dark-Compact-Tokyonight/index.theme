@@ -1,12 +1,8 @@
 [Desktop Entry]
 Type=X-GNOME-Metatheme
-Name=Lavanda-Dark-Compact
-Comment=An Clean Gtk+ theme based on Elegant Design
-Encoding=UTF-8
+Name=Lavanda-Dark-Compact-Tokyonight
+Comment=Lavanda GTK theme used by Miserable Xfce
 
 [X-GNOME-Metatheme]
-GtkTheme=Lavanda-Dark-Compact
-MetacityTheme=Lavanda-Dark-Compact
-IconTheme=Tela-circle-Dark
-CursorTheme=Lavanda-cursors
-ButtonLayout=close,minimize,maximize:menu
+GtkTheme=Lavanda-Dark-Compact-Tokyonight
+IconTheme=Numix-Circle

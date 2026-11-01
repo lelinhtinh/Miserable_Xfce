@@ -1,26 +1,18 @@
 (defwidget spotify []
-	(box :class "genwin"
-	     :style "padding: 0"
-	     :tooltip "Spotify"
-	    (box :class "music-player" :orientation "h" :space-evenly "false"
-            (box :class "song-art" :style "background-image: url('${art}')" :tooltip "${song_artist} - ${song_title}" song_art
-                (box :class "music-info" :orientation "v" :space-evenly "false"
-                    (box :class "np" :orientation "h" :space-evenly "false"
-                        (label :class "now-playing" :text "Now Playing")
-                    )
-                    (box :class "title" :orientation "h" :space-evenly "false"
-                        (label :class "song-title" :text song_title)
-                    )
-                    (box :class "artist" :orientation "h" :space-evenly "false"
-                        (label :class "song-artist" :text "by ${song_artist}")
-                    )
-                )
-            )
-        	(box :class "song-controls" :orientation "v"
-            	(button :onclick "playerctl next" "")
-            	(button :class "play-pause" :onclick "playerctl play-pause" player_status)
-                (button :onclick "playerctl previous" "")
-            )
-        )
-    )
-)
+  (box :class "genwin music-player" :orientation "h" :space-evenly false
+       :tooltip {musicdata.tooltip}
+    (box :class "music-content" :orientation "v" :space-evenly false :spacing 7 :hexpand true
+      (label :class "music-source" :text {musicdata.source} :halign "start" :limit-width 24)
+      (box :orientation "h" :space-evenly false :spacing 10
+        (image :path {musicdata.art} :image-width 64 :image-height 64 :valign "center")
+        (box :orientation "v" :space-evenly false :spacing 5 :valign "center"
+          (label :class "music-title" :text {musicdata.title} :limit-width 18 :wrap true :halign "start" :xalign 0)
+          (label :class "music-artist" :text {musicdata.artist} :limit-width 18 :halign "start" :xalign 0)))
+      (label :class "music-status" :text {musicdata.status == "Playing" ? "Đang phát" : musicdata.status == "Paused" ? "Đã tạm dừng" : "Đã dừng"} :halign "start"))
+    (box :class "song-controls" :orientation "v" :space-evenly true
+      (button :tooltip "Bài tiếp theo" :timeout "3s" :onclick "@HOME@/.config/eww/scripts/media --action next"
+        (image :icon "media-skip-forward-symbolic" :icon-size "large-toolbar"))
+      (button :tooltip "Phát / Tạm dừng" :timeout "3s" :onclick "@HOME@/.config/eww/scripts/media --action play-pause"
+        (image :icon {musicdata.play_icon} :icon-size "large-toolbar"))
+      (button :tooltip "Bài trước" :timeout "3s" :onclick "@HOME@/.config/eww/scripts/media --action previous"
+        (image :icon "media-skip-backward-symbolic" :icon-size "large-toolbar")))))

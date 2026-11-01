@@ -1,0 +1,162 @@
+diff --git a/panel-plugin/devicemenuitem.c b/panel-plugin/devicemenuitem.c
+index 17766b4..592d659 100644
+--- a/panel-plugin/devicemenuitem.c
++++ b/panel-plugin/devicemenuitem.c
+@@ -23,6 +23,7 @@
+ #endif
+ 
+ #include "devicemenuitem.h"
++#include "pulseaudio-menu.h"
+ 
+ /* for DBG/TRACE */
+ #include <libxfce4util/libxfce4util.h>
+@@ -74,6 +75,7 @@ device_menu_item_new_with_label (const gchar *label)
+   priv = device_menu_item_get_instance_private (device_item);
+ 
+   priv->submenu = gtk_menu_new ();
++  g_signal_connect (priv->submenu, "key-press-event", G_CALLBACK (pulseaudio_menu_screenshot_key), NULL);
+   priv->title = g_strdup (label);
+   priv->group = NULL;
+ 
+@@ -116,7 +118,7 @@ device_menu_item_add_device (DeviceMenuItem *item,
+   gtk_widget_show (mi);
+   gtk_menu_shell_append (GTK_MENU_SHELL (priv->submenu), mi);
+ 
+-  g_signal_connect_swapped (G_OBJECT (mi), "toggled", G_CALLBACK (device_menu_item_device_toggled), item);
++  g_signal_connect_swapped (G_OBJECT (mi), "activate", G_CALLBACK (device_menu_item_device_toggled), item);
+ }
+ 
+ 
+diff --git a/panel-plugin/pulseaudio-menu.c b/panel-plugin/pulseaudio-menu.c
+index abac8cd..1914e49 100644
+--- a/panel-plugin/pulseaudio-menu.c
++++ b/panel-plugin/pulseaudio-menu.c
+@@ -29,6 +29,7 @@
+ #endif
+ 
+ #include <glib.h>
++#include <xfconf/xfconf.h>
+ #include <gtk/gtk.h>
+ #include <libxfce4panel/libxfce4panel.h>
+ #include <libxfce4util/libxfce4util.h>
+@@ -85,9 +86,41 @@ pulseaudio_menu_class_init (PulseaudioMenuClass *klass)
+ 
+ 
+ 
++/* GtkMenu owns the keyboard while open, so Xfce cannot receive Print.
++ * Release the seat before starting the configured capture tool. */
++gboolean
++pulseaudio_menu_screenshot_key (GtkWidget *widget, GdkEventKey *event, gpointer userdata)
++{
++  gchar *command;
++  const gchar *property;
++  GError *error = NULL;
++  if (event->keyval != GDK_KEY_Print ||
++      (event->state & (GDK_CONTROL_MASK | GDK_SUPER_MASK | GDK_MOD4_MASK)))
++    return FALSE;
++  property = (event->state & GDK_MOD1_MASK) ? "/commands/custom/<Alt>Print" :
++             (event->state & GDK_SHIFT_MASK) ? "/commands/custom/<Shift>Print" :
++             "/commands/custom/Print";
++  command = xfconf_channel_get_string (xfconf_channel_get ("xfce4-keyboard-shortcuts"), property, NULL);
++  if (command == NULL || *command == '\0')
++    {
++      g_free (command);
++      return FALSE;
++    }
++  gdk_seat_ungrab (gdk_display_get_default_seat (gtk_widget_get_display (widget)));
++  gdk_display_flush (gtk_widget_get_display (widget));
++  if (!g_spawn_command_line_async (command, &error))
++    {
++      g_warning ("Screenshot failed: %s", error->message);
++      g_error_free (error);
++    }
++  g_free (command);
++  return TRUE;
++}
++
+ static void
+ pulseaudio_menu_init (PulseaudioMenu *menu)
+ {
++  g_signal_connect (menu, "key-press-event", G_CALLBACK (pulseaudio_menu_screenshot_key), NULL);
+ }
+ 
+ 
+diff --git a/panel-plugin/pulseaudio-menu.h b/panel-plugin/pulseaudio-menu.h
+index 3849b79..8814167 100644
+--- a/panel-plugin/pulseaudio-menu.h
++++ b/panel-plugin/pulseaudio-menu.h
+@@ -44,6 +44,8 @@ PulseaudioMenu         *pulseaudio_menu_new         (PulseaudioVolume *volume,
+                                                      PulseaudioMpris  *mpris,
+                                                      GtkWidget        *widget);
+ 
++gboolean pulseaudio_menu_screenshot_key (GtkWidget *widget, GdkEventKey *event, gpointer userdata);
++
+ G_END_DECLS
+ 
+ #endif /* !__PULSEAUDIO_MENU_H__ */
+diff --git a/panel-plugin/pulseaudio-volume.c b/panel-plugin/pulseaudio-volume.c
+index 4f7b93f..f3518b5 100644
+--- a/panel-plugin/pulseaudio-volume.c
++++ b/panel-plugin/pulseaudio-volume.c
+@@ -1220,6 +1220,40 @@ pulseaudio_volume_get_default_input (PulseaudioVolume *volume)
+ 
+ 
+ 
++/* A device choice must also move streams that PulseAudio has pinned to
++ * their previous sink. Own the name until the asynchronous list finishes. */
++static void
++pulseaudio_volume_move_playback_cb (pa_context *context,
++                                   const pa_sink_input_info *info,
++                                   int eol, void *userdata)
++{
++  gchar *name = userdata;
++  if (eol != 0)
++    {
++      g_free (name);
++      return;
++    }
++  if (info != NULL)
++    {
++      pa_operation *op = pa_context_move_sink_input_by_name (context, info->index, name, NULL, NULL);
++      if (op != NULL)
++        pa_operation_unref (op);
++    }
++}
++
++static void
++pulseaudio_volume_output_selected_cb (pa_context *context, int success, void *userdata)
++{
++  gchar *name = userdata;
++  pa_operation *op = NULL;
++  if (success)
++    op = pa_context_get_sink_input_info_list (context, pulseaudio_volume_move_playback_cb, name);
++  if (op != NULL)
++    pa_operation_unref (op);
++  else
++    g_free (name);
++}
++
+ void
+ pulseaudio_volume_set_default_output (PulseaudioVolume *volume,
+                                       const gchar      *name,
+@@ -1227,15 +1261,18 @@ pulseaudio_volume_set_default_output (PulseaudioVolume *volume,
+ {
+   pa_operation *op;
+ 
+-  if (g_strcmp0(name, volume->default_sink_name) == 0)
++  if (!make_default && g_strcmp0(name, volume->default_sink_name) == 0)
+     return;
+ 
+   if (make_default)
+     {
+       /* "default_sink_name" will be updated in "else" called from "pulseaudio_volume_subscribe_cb" callback */
+-      op = pa_context_set_default_sink (volume->pa_context, name, NULL, volume);
++      gchar *target = g_strdup (name);
++      op = pa_context_set_default_sink (volume->pa_context, name, pulseaudio_volume_output_selected_cb, target);
+       if (op)
+         pa_operation_unref (op);
++      else
++        g_free (target);
+     }
+   else
+     {

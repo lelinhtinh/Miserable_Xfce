@@ -1,0 +1,6 @@
+[Desktop Entry]
+Type=Application
+Name=Flameshot
+Exec=env QT_QPA_PLATFORM=xcb /usr/bin/flameshot
+OnlyShowIn=XFCE;
+Terminal=false

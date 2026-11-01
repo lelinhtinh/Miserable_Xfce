@@ -1,0 +1,8 @@
+[user]
+indicatorColor=rgb(97,53,131)
+inactiveColor=rgb(61,56,70)
+inactiveIndicatorStyle=1
+indicatorOrientation=3
+showPreviews=true
+indicatorColorFromTheme=true
+pinned=com.microsoft.VSCode;xfce4-terminal;google-chrome;

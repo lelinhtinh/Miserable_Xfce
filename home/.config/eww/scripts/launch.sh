@@ -1,18 +1,11 @@
-#!/bin/bash
-
-# IDK why eww doesn't allow launching programs directly
-# Even launch.sh $1 doesn't work, whyyyyy?
-
-declare target
-
-case $1 in
-    --taskmanager) 	target="xfce4-taskmanager" ;;
-	--filemanager) 	target="thunar" ;;
-	--webbrowser) 	target="firefox" ;;
-	--terminal) 	target="xfce4-terminal" ;;
-	--texteditor) 	target="subl" ;;
-	--calendar)		target="gnome-calendar"
+#!/usr/bin/env bash
+case ${1:-} in
+ --taskmanager) xfce4-terminal --title="Task Manager — btop" -x btop &;;
+ --filemanager) exo-open --launch FileManager &;;
+ --webbrowser) exo-open --launch WebBrowser &;;
+ --terminal) exo-open --launch TerminalEmulator &;;
+ --texteditor) exo-open --launch TextEditor &;;
+ --calendar) "$HOME/.local/bin/eww" open --toggle calendarevent;;
 esac
-
-gtk-launch ${target}
-eww close-all
+"$HOME/.local/bin/eww" close sidebar
+"$HOME/.local/bin/eww" close sysstat

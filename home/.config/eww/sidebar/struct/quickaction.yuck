@@ -1,0 +1,9 @@
+(defwidget quickaction [icon title tooltip action]
+  (button :class "quick-action"
+          :tooltip tooltip
+          :timeout "3s"
+          :onclick "@HOME@/.local/share/miserable-xfce/quick-action.sh ${action}"
+    (box :orientation "v" :space-evenly false :spacing 8
+         :valign "center" :halign "center"
+      (image :icon icon :icon-size "large-toolbar")
+      (label :text title))))

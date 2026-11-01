@@ -1,16 +1,20 @@
-(defwidget statusbox [?classes ?icon ?header ?description] 
+(defwidget statusbox [?classes ?icon ?header ?description ?icon_name ?tooltip action]
+    (button :class "statusbox-button"
+            :onclick "@HOME@/.local/share/miserable-xfce/quick-action.sh ${action}"
     (box :class "genwin statusbox ${classes}"
+         :tooltip {tooltip ?: ""}
          :space-evenly "true"
          :orientation "v"
 
         (box :orientation "h"
              :space-evenly "false"
              :valign "center"
-             :halign "center"
+             :halign "start"
              :spacing 12
 
-            (label :class "icon"
-                   :text "${icon}"
+            (box
+              (image :visible {icon_name != ""} :icon {icon_name ?: "drive-harddisk-symbolic"} :icon-size "large-toolbar")
+              (label :visible {icon_name == ""} :class "icon" :text {icon ?: ""})
             )
             (box :orientation "v"
                 (label :text header
@@ -23,4 +27,4 @@
             )
         )
     )
-)
+))

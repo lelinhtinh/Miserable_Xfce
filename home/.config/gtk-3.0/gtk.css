@@ -136,3 +136,89 @@ VteTerminal, vte-terminal {
 .xfsm-logout-dialog * {
 	margin: 3px;
 }
+/* Chrome-style window controls */
+button.titlebutton, windowcontrols button {
+ border-radius: 0; background-image: none; background-color: transparent;
+ border: none; box-shadow: none; min-width: 32px; min-height: 24px;
+ padding: 0; margin: 0; color: #c0caf5;
+}
+button.titlebutton:hover, windowcontrols button:hover { background-image: none; background-color: #343644; }
+button.titlebutton.close:hover, windowcontrols button.close:hover { background-image: none; background-color: #e81123; color: white; }
+button.titlebutton.close image, windowcontrols button.close image { -gtk-icon-source: url("@HOME@/.themes/Miserable-Chrome/controls/close.svg"); }
+button.titlebutton.minimize image, windowcontrols button.minimize image { -gtk-icon-source: url("@HOME@/.themes/Miserable-Chrome/controls/minimize.svg"); }
+button.titlebutton.maximize image, windowcontrols button.maximize image { -gtk-icon-source: url("@HOME@/.themes/Miserable-Chrome/controls/maximize.svg"); }
+
+window.maximized button.titlebutton.maximize image, window.maximized windowcontrols button.maximize image { -gtk-icon-source: url("@HOME@/.themes/Miserable-Chrome/controls/restore.svg"); }
+
+/* Neutral circular Chrome hover for all window controls. */
+button.titlebutton:hover, button.titlebutton.close:hover,
+windowcontrols button:hover, windowcontrols button.close:hover {
+ background-color: transparent;
+ background-image: radial-gradient(circle, rgba(232,234,237,0.10) 0%, rgba(232,234,237,0.10) 65%, transparent 72%);
+ background-size: 28px 28px;
+ background-position: center;
+ background-repeat: no-repeat;
+ border: none; box-shadow: none; color: #e8eaed;
+}
+button.titlebutton:active, button.titlebutton.close:active,
+windowcontrols button:active, windowcontrols button.close:active {
+ background-color: transparent;
+ background-image: radial-gradient(circle, rgba(232,234,237,0.17) 0%, rgba(232,234,237,0.17) 65%, transparent 72%);
+ background-size: 28px 28px;
+ background-position: center;
+ background-repeat: no-repeat;
+ border: none; box-shadow: none; color: #e8eaed;
+}
+
+/* Windows-style Show Desktop strip at the right edge. */
+#showdesktop-3 { margin-left: -36px; }
+#showdesktop-3 button {
+  min-width: 0;
+  min-height: 0;
+  margin: 0 0 0 36px;
+  padding: 0;
+  border-radius: 0;
+  border: none;
+  border-left: 1px solid rgba(192, 202, 245, 0.28);
+  background-image: none;
+  background-color: transparent;
+  box-shadow: none;
+}
+#showdesktop-3 button image { -gtk-icon-source: none; opacity: 0; margin-left: -25px; }
+#showdesktop-3 button:hover { background-color: rgba(192, 202, 245, 0.12); }
+#showdesktop-3 button:checked { background-color: rgba(192, 202, 245, 0.18); }
+
+/* Match the clock-to-desktop gap to the notification spacing. */
+
+#clock-button { margin-left: 7px; margin-right: -21px; }
+
+/* The Sidebar launcher fills the entire bottom-left taskbar square. */
+#launcher-12 button {
+  margin: 0; padding: 0; min-width: 46px; min-height: 46px;
+  border: none; border-radius: 0; box-shadow: none;
+  background-color: transparent;
+}
+#launcher-12 button:hover { background-color: rgba(192, 202, 245, 0.12); }
+#launcher-12 button:active { background-color: rgba(192, 202, 245, 0.18); }
+
+/* Four workspace dots beside the window overview button. */
+#pager-19 grid { margin: 0 8px; padding: 0; }
+#pager-19 button {
+  min-width: 16px; min-height: 16px;
+  margin: 14px 6px; padding: 0;
+  font-size: 0; border-radius: 999px;
+  border: 1px solid #7aa2f7;
+  background-image: none; background-color: transparent; box-shadow: none;
+}
+#pager-19 button:hover { background-color: rgba(122, 162, 247, 0.3); }
+#pager-19 button:checked { border-color: #9ece6a; background-color: #9ece6a; }
+
+/* Whisker remains available from the keyboard without a visible panel button. */
+#whiskermenu-10 #whiskermenu-button {
+  min-width: 0; min-height: 0; margin: 0; padding: 0;
+  border: none; border-radius: 0; background-image: none;
+  background-color: transparent; box-shadow: none; opacity: 0;
+}
+#whiskermenu-10 #whiskermenu-button label {
+  font-size: 0; min-width: 0; margin: 0; padding: 0;
+}

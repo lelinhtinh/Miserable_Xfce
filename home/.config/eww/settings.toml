@@ -1,0 +1,23 @@
+# Personal settings for Miserable Xfce. See docs/settings.md.
+[storage]
+data_path = "/mnt/data"
+data_label = "Data"
+sidebar_path = "~"
+
+[weather]
+location = "Hoà Xuân, Đà Nẵng"
+latitude = 16.00495
+longitude = 108.22045
+timezone = "Asia/Ho_Chi_Minh"
+refresh_seconds = 900
+
+[network]
+ping_host = "1.1.1.1"
+
+[desktop]
+wallpaper = "~/.local/share/backgrounds/desinight_by_smn_paike.png"
+panel_height = 46
+browser = "google-chrome"
+terminal = "xfce4-terminal"
+pinned_apps = ["com.microsoft.VSCode", "xfce4-terminal", "google-chrome"]
+store_command = ["pamac-manager"]

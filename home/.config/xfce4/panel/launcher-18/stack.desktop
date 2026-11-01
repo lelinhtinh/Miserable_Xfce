@@ -1,0 +1,9 @@
+[Desktop Entry]
+Type=Application
+Name=Window Overview
+Name[vi]=Tổng quan cửa sổ
+Comment=Show all open windows
+Exec=@HOME@/.local/bin/skippy.sh
+Icon=@HOME@/.local/share/miserable-xfce/assets/stack.svg
+Terminal=false
+StartupNotify=false

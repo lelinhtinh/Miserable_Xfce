@@ -1,0 +1,13 @@
+[Unit]
+Description=Open Whisker Menu when the Windows key is tapped
+After=graphical-session.target
+
+[Service]
+Type=forking
+ExecStart=@HOME@/.local/bin/xcape -t 500 -e Super_L=Control_L|Alt_L|Shift_L|F11;Super_R=Control_L|Alt_L|Shift_L|F11
+Restart=on-failure
+RestartSec=2
+StandardOutput=null
+
+[Install]
+WantedBy=default.target

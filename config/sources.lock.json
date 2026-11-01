@@ -1,0 +1,30 @@
+{
+  "eww": {
+    "url": "https://github.com/elkowar/eww.git",
+    "commit": "d87c2fdbfdc012e76d229e4e9ea3325bc0f23e89"
+  },
+  "pulseaudio-plugin": {
+    "url": "https://github.com/xfce-mirror/xfce4-pulseaudio-plugin.git",
+    "commit": "be9a534c43f0ef46446759b540075f28f9ed5155"
+  },
+  "numix-icon-theme": {
+    "url": "https://github.com/numixproject/numix-icon-theme.git",
+    "commit": "c876b63326530034e3ac3f9cc66a13b445aca230"
+  },
+  "numix-icon-theme-circle": {
+    "url": "https://github.com/numixproject/numix-icon-theme-circle.git",
+    "commit": "6d4a4aad60994e688ab9dc8f021cb4ec86e9e532"
+  },
+  "skippy-xd.tar.gz": {
+    "sha256": "bb2eee25ef11c66b9dd0b5ae75d87613ad980495c11c6f66e3121cd605b95edb",
+    "url": "https://github.com/felixfung/skippy-xd/archive/refs/tags/2026.09.26.tar.gz"
+  },
+  "chipmunk2d.tar.gz": {
+    "sha256": "1289851ba01e6607fbe8e2c81caf4eb868bc1aeafd912664849ea5fc8720c7f3",
+    "origin": "https://github.com/slembcke/Chipmunk2D"
+  },
+  "cortile_2.5.2_linux_amd64.tar.gz": {
+    "sha256": "dcc104bb2dbdf5596b6de5e578b8988347200759ca5c1134f9d0bec3b19ef3dd",
+    "url": "https://github.com/leukipp/cortile/releases/download/v2.5.2/cortile_2.5.2_linux_amd64.tar.gz"
+  }
+}

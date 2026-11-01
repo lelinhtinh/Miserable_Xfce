@@ -1,0 +1,7 @@
+[Desktop Entry]
+Type=Application
+Name=Sidebar
+Exec=@HOME@/.local/share/miserable-xfce/toggle-widget.sh sidebar
+Icon=@HOME@/.local/share/miserable-xfce/assets/Menu.svg
+Terminal=false
+StartupNotify=false

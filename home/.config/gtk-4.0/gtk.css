@@ -6,3 +6,36 @@ popover contents {
 	border-top-right-radius: 0;
 	box-shadow: none;
 }
+/* Chrome-style window controls */
+button.titlebutton, windowcontrols button {
+ border-radius: 0; background-image: none; background-color: transparent;
+ border: none; box-shadow: none; min-width: 32px; min-height: 24px;
+ padding: 0; margin: 0; color: #c0caf5;
+}
+button.titlebutton:hover, windowcontrols button:hover { background-image: none; background-color: #343644; }
+button.titlebutton.close:hover, windowcontrols button.close:hover { background-image: none; background-color: #e81123; color: white; }
+button.titlebutton.close image, windowcontrols button.close image { -gtk-icon-source: url("@HOME@/.themes/Miserable-Chrome/controls/close.svg"); }
+button.titlebutton.minimize image, windowcontrols button.minimize image { -gtk-icon-source: url("@HOME@/.themes/Miserable-Chrome/controls/minimize.svg"); }
+button.titlebutton.maximize image, windowcontrols button.maximize image { -gtk-icon-source: url("@HOME@/.themes/Miserable-Chrome/controls/maximize.svg"); }
+
+window.maximized button.titlebutton.maximize image, window.maximized windowcontrols button.maximize image { -gtk-icon-source: url("@HOME@/.themes/Miserable-Chrome/controls/restore.svg"); }
+
+/* Neutral circular Chrome hover for all window controls. */
+button.titlebutton:hover, button.titlebutton.close:hover,
+windowcontrols button:hover, windowcontrols button.close:hover {
+ background-color: transparent;
+ background-image: radial-gradient(circle, rgba(232,234,237,0.10) 0%, rgba(232,234,237,0.10) 65%, transparent 72%);
+ background-size: 28px 28px;
+ background-position: center;
+ background-repeat: no-repeat;
+ border: none; box-shadow: none; color: #e8eaed;
+}
+button.titlebutton:active, button.titlebutton.close:active,
+windowcontrols button:active, windowcontrols button.close:active {
+ background-color: transparent;
+ background-image: radial-gradient(circle, rgba(232,234,237,0.17) 0%, rgba(232,234,237,0.17) 65%, transparent 72%);
+ background-size: 28px 28px;
+ background-position: center;
+ background-repeat: no-repeat;
+ border: none; box-shadow: none; color: #e8eaed;
+}

@@ -1,72 +1,71 @@
-# Xfce Settings Setup Guide
+# Cài đặt và kiểm chứng CachyOS
 
-A step-by-step guide to configure the Xfce settings used in this setup.
+Quy trình dùng [hướng dẫn chuyển DE của CachyOS](https://wiki.cachyos.org/configuration/desktop_environments/switch_desktop/) và danh sách `[desktop.xfce]` từ [CachyOS/New-Cli-Installer](https://github.com/CachyOS/New-Cli-Installer/blob/master/net-profiles.toml). Bản danh sách được lưu tại `config/cachyos-xfce-packages.txt`. Đã bỏ mục lỗi thời `xfce4-datetime-plugin` vì repository hiện không còn package này; [DateTime đã hợp nhất vào Clock của xfce4-panel từ Xfce 4.18](https://xfce.org/about/tour418). Wiki hiện mô tả XFCE là bản vanilla, không có gói `cachyos-xfce-settings` riêng trong danh sách đang hỗ trợ; không tự cài một gói settings dựa trên phỏng đoán.
 
-> Reboot your system after installation before starting this guide.
+## Thứ tự thực hiện
 
----
+1. Tạo snapshot hệ thống, snapshot home và bản nén repo.
+2. Gỡ nhóm Plasma và `cachyos-kde-settings` nếu còn; nếu đã gỡ thì ghi nhận và bỏ qua bước này.
+3. Cài bộ XFCE đúng danh sách CachyOS, chọn LightDM cho lần boot sau.
+4. Kiểm tra XFCE mặc định trước khi áp dụng cấu hình repo.
+5. Cài phụ thuộc bổ sung, build các công cụ, áp dụng `home/` và kiểm tra lại.
 
-## Settings Manager
+```bash
+bash scripts/installer.sh --snapshot
+bash scripts/installer.sh --baseline
+bash scripts/installer.sh --build
+```
 
-Open Settings Manager to begin configuration.
+Bước `--baseline` cài lần lượt bộ XFCE mặc định và các phụ thuộc build trong cùng lượt xác thực; chưa áp dụng cấu hình cá nhân. Có thể dùng riêng `--packages` để bổ sung phụ thuộc về sau. Các bước hệ thống dùng PolicyKit và yêu cầu xác thực quản trị. Chạy script bằng tài khoản desktop thường; không chạy build/apply bằng root. Pacman dùng nâng cấp toàn hệ thống `-Syu`, không partial upgrade. Không yêu cầu cài trực tiếp `zlib`: CachyOS có thể dùng `zlib-ng-compat` để cung cấp cùng ABI/header/pkg-config; ép cài `zlib` gây xung đột provider. Các phụ thuộc GTK/libpng bảo đảm provider cần thiết. Script không tự reboot hoặc dừng display manager đang phục vụ phiên đăng nhập.
 
-<img width="500" height="380" alt="settings-manager" src="https://github.com/user-attachments/assets/3042eaca-8dba-4e46-897a-6b7a235f0131" />
+Snapshot yêu cầu root và home dùng Btrfs trên cùng filesystem, có Snapper config `root`. Root snapshot không bao phủ `/home` vì là subvolume riêng, nên tạo thêm snapshot read-only của `/home`. Repo trên ext4 được nén riêng. Backup repo mặc định nằm trong `/var/lib/miserable-xfce/backups/`; có thể đặt thư mục khác bằng `bash scripts/installer.sh --snapshot /mnt/data/Backups/Miserable_Xfce`. Vị trí snapshot/backup được ghi trong `/var/lib/miserable-xfce/latest-snapshot`; cần giữ cả root, home và repo để quay lại đầy đủ. Không hoàn tác home trong khi người dùng đang đăng nhập. Nếu cài mới trên máy khác, xác nhận bố cục filesystem trước khi chạy bước snapshot.
 
----
+Để kiểm tra ngay trong phiên XFCE hiện có mà vẫn giữ các cửa sổ ứng dụng:
 
-## Step 1: Appearance
+```bash
+python scripts/session.py baseline
+# Kiểm tra panel mặc định, theme Adwaita / icon elementary.
+python scripts/session.py apply
+```
 
-Navigate to Settings Manager → Appearance and select the **Lavanda Dark Compact Tokyo** theme.
+`baseline` lưu bản sao cấu hình desktop, dừng các widget/service tùy chỉnh, đặt lại xfconf qua D-Bus từ `/etc/xdg/xfce4` và mở panel mặc định. Giữ bố cục màn hình, bộ gõ, âm thanh và dữ liệu ứng dụng. `apply` nạp cấu hình từ mã nguồn cũng qua D-Bus để tránh xfconfd ghi ngược file cũ. Đây là kiểm tra desktop trong cùng phiên X11; không thay thế việc kiểm tra đăng nhập LightDM sau reboot.
 
-<img width="500" height="380" alt="appearance" src="https://github.com/user-attachments/assets/c0e7f025-4bd4-4a22-99f6-33db9dba486e" />
+Cách thông thường trên máy mới: đăng xuất desktop, chuyển TTY bằng Ctrl+Alt+F3, đăng nhập tài khoản thường, rồi:
 
----
+```bash
+bash scripts/installer.sh --apply
+```
 
-## Step 2: Panel Configuration
+Có thể xem trước mà không ghi file:
 
-This is where the magic happens. Configure your panel to match the refined layout.
+```bash
+python scripts/apply.py --include-built --dry-run
+```
 
-**Part A:** Go to Settings Manager → Panel → Back up and restore
+Apply tạo bản sao lưu file bị thay tại `~/.local/state/miserable-xfce/backups/` và in lệnh rollback. File `~/.config/eww/settings.toml` đã có được giữ nguyên. Sau khi đăng nhập Xfce X11, service neo sidebar, Skippy Overview, Cortile và phím Windows được khởi động qua autostart.
 
-<img width="500" height="380" alt="panel" src="https://github.com/user-attachments/assets/1de0a9f7-b8b5-473a-b7e7-406b17544379" />
+## Cấu hình và phụ thuộc
 
-**Part B:** Select Import and navigate to `~/.config/xfce4/panel/Miserable_xfce.tar.bz2` then apply.
+Xem [cấu hình cá nhân](settings.md) trước khi cài cho tài khoản khác. Chrome/VS Code/Pamac là lựa chọn trong TOML; cài các app này hoặc đổi sang app đã có. Bộ gõ Fcitx, audio stack, DAC Simgot và màn hình ảo RustDesk thuộc cấu hình máy, không bị installer desktop tự thay thế. Chúng nằm trong snapshot home/hệ thống để phục hồi máy nguồn.
 
-<img width="300" height="375" alt="import-panel" src="https://github.com/user-attachments/assets/32b57b80-6403-42d1-874d-a3a5a7adc180" />
+Giữ các nguồn đang cần: Eww (vá thời gian IPC/compatibility), Skippy + Chipmunk (vá Ctrl+Tab/icon/DISPLAY), plugin PulseAudio (chuyển stream và chụp menu), Cortile release x86_64, xcape từ package và Numix/Numix-Circle. Chỉ giữ GTK 3/4 của Lavanda, Miserable-Chrome, font đang dùng và một hình nền được chọn. Đã bỏ profile riêng, bộ icon/theme cũ, widget Gmail/Spotify helper cũ, script Picom fork và các bản cài đa distro không dùng.
 
-**Panel Configuration Reference:**
+CachyOS là rolling release: source tự build được khóa phiên bản, còn package hệ thống theo repository hiện tại. Biên dịch và chạy tests không chứng minh driver/thiết bị khác hoạt động giống máy nguồn.
 
-The following images show the complete panel setup for your reference:
+## Kiểm tra sau cài
 
-<img width="300" height="575" alt="panel-1" src="https://github.com/user-attachments/assets/0e1da61a-99d9-4a1e-a5da-759a37f8bbab" />
+- Panel dưới, widget Sidebar/System Stats, 4 workspace và các plugin đều có.
+- Chạm Windows mở Whisker; Ctrl+Space mở Applications; Ctrl+Tab bật/tắt Overview.
+- Data đọc đúng filesystem đã cấu hình; thời tiết hiển thị địa điểm mới khi đổi TOML.
+- Sidebar neo đúng sau đổi độ phân giải; nhạc MPRIS hiện/ẩn theo trình phát.
+- Print/Shift+Print/Alt+Print chụp được cả khi menu âm lượng mở; đổi output chuyển stream đang phát.
+- Cortile khởi động không bật tiling; Ctrl+Alt+Shift+T bật/tắt được.
+- `systemctl --user --failed` không có lỗi mới.
 
-<img width="300" height="575" alt="panel-2" src="https://github.com/user-attachments/assets/0fd0fd9f-8f9c-41c4-a1d2-34ba97990f47" />
+Chạy kiểm thử:
 
-<img width="300" height="575" alt="panel-3" src="https://github.com/user-attachments/assets/2e925b9c-2e97-48d3-abf2-55ce39486c6d" />
+```bash
+python -m unittest discover -s tests -v
+```
 
-The application sidebar and system status buttons are configured as launcher items. Import additional configs from `~/.config/xfce4/panel/` as needed for your setup.
-
----
-
-## Step 3: Window Manager
-
-Navigate to Settings Manager → Window Manager and select the **Circles** theme.
-
-<img width="500" height="380" alt="window-manager" src="https://github.com/user-attachments/assets/c6e5ba91-ed0d-4b0a-ae98-65c040e80689" />
-
----
-
-## You're Done
-
-Your Xfce environment is now fully configured and ready to experience the complete workflow.
-
----
-
-## Credits
-
-**Project Contributors:**
-- Original Project: [mehedirm6244](https://github.com/mehedirm6244)
-- Scripts & Installation Guide: [G-flame](https://github.com/g-flame)
-- Cleanup\janitoring: [bthavanish](https://github.com/bthavanish)
-
-**Built with** [Xfce](https://www.xfce.org/)
+Thông tin snapshot và kết quả thực thi trên máy nguồn được ghi ở [lần kiểm chứng hiện tại](validation.md).

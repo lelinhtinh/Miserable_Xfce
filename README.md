@@ -1,60 +1,32 @@
-# Miserable Xfce - Serenade
+# Miserable Xfce — CachyOS
 
-![xfce](https://github.com/mehedirm6244/Miserable_Xfce/blob/Serenade/data/slide.gif)
+Bản fork của [mehedirm6244/Miserable_Xfce](https://github.com/mehedirm6244/Miserable_Xfce), cập nhật trực tiếp theo desktop hiện tại. Chỉ có một bộ cấu hình trong `home/`; các theme, icon, hình nền và widget cũ không còn dùng đã được bỏ.
 
-A animated Xfce desktop environment with transitions and aesthetics. Everything you need to build this exact setup is here.
-
-**Star the repo if you like it.**
-
-**Workflow:** [Watch on Youtube](https://youtu.be/gfmeCiskZwM)
-
-**Community:** [r/unixporn post](https://www.reddit.com/r/unixporn/comments/15o6n6t/xfce_serenade_xfce_with_animations/?utm_source=share&utm_medium=web2x&context=3)
-
----
-
-## Installation
-
-Get the base setup running in one go:
+**[Cài đặt / kiểm chứng trên CachyOS](docs/setup.md)** · **[Tuỳ chỉnh cá nhân](docs/settings.md)**
 
 ```bash
-bash <(curl -s https://raw.githubusercontent.com/mehedirm6244/Miserable_Xfce/refs/heads/Serenade/scripts/clone.sh)
+bash scripts/installer.sh --snapshot
+bash scripts/installer.sh --baseline
+bash scripts/installer.sh --build
 ```
 
-## Arch only
+Đăng xuất XFCE, vào TTY bằng tài khoản thường rồi chạy:
 
-**After installation, install dependencies with your favourite AUR helper**
-
-paru
 ```bash
-paru -S eww neofetch skippy-xd-git
+bash scripts/installer.sh --apply
 ```
 
-yay
+Hoặc áp dụng vào phiên XFCE đang chạy sau khi đã tạo snapshot:
+
 ```bash
-yay -S eww neofetch skippy-xd-git
+python scripts/session.py baseline
+python scripts/session.py apply
 ```
----
-Then proceed to setup.
 
----
+Cấu hình cá nhân nằm ở `~/.config/eww/settings.toml`: thư mục Data, địa điểm thời tiết, địa chỉ ping, hình nền, chiều cao panel, ứng dụng ghim và Software Manager. Cài lại không ghi đè file này nếu đã có.
 
-## Setup
+```bash
+python -m unittest discover -s tests -v
+```
 
-> **BEFORE YOU CONTINUE:** Reboot your system first, then follow the setup guide to configure themes, panels, and all customizations.
->
-> **[→ Full Setup Guide](docs/setup.md)**
->
-> This is where your desktop truly comes alive. Don't skip this step.
-
----
-
-
-## Contributors
-
-- Original Project: [mehedirm6244](https://github.com/mehedirm6244)
-- Scripts & Installation Guide: [G-flame](https://github.com/g-flame)
-- Cleanup\janitoring: [bthavanish](https://github.com/bthavanish)
-
----
-
-**Powered by** [Xfce](https://www.xfce.org/) !!!!!
+Cảm ơn dự án gốc của mehedirm6244, phần installer của G-flame và các đóng góp upstream. Các nguồn dùng để build được cố định trong `config/sources.lock.json`; bản vá nằm trong `patches/`, các gói nguồn/release cần thiết nằm trong `vendor/`. Phụ thuộc icon được lấy từ Numix; không lưu các bộ icon khác không dùng.

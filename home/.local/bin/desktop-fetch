@@ -1,0 +1,6 @@
+#!/usr/bin/env bash
+cols=$(tput cols 2>/dev/null || printf '80')
+if [[ $cols =~ ^[0-9]+$ ]] && (( cols < 64 )); then
+ exec "$HOME/.local/bin/neofetch" --config "$HOME/.config/neofetch/config.conf" --off
+fi
+exec "$HOME/.local/bin/neofetch" --config "$HOME/.config/neofetch/config.conf"

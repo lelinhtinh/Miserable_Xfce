@@ -1,0 +1,11 @@
+[Unit]
+Description=Keep Sidebar anchored when display geometry changes
+After=graphical-session.target
+
+[Service]
+ExecStart=/usr/bin/python @HOME@/.local/share/miserable-xfce/sidebar-anchor.py
+Restart=on-failure
+RestartSec=2
+
+[Install]
+WantedBy=default.target
