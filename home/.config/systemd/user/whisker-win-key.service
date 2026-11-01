@@ -8,6 +8,3 @@ ExecStart=@HOME@/.local/bin/xcape -t 500 -e Super_L=Control_L|Alt_L|Shift_L|F11;
 Restart=on-failure
 RestartSec=2
 StandardOutput=null
-
-[Install]
-WantedBy=default.target

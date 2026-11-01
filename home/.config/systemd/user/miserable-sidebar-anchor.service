@@ -6,6 +6,3 @@ After=graphical-session.target
 ExecStart=/usr/bin/python @HOME@/.local/share/miserable-xfce/sidebar-anchor.py
 Restart=on-failure
 RestartSec=2
-
-[Install]
-WantedBy=default.target

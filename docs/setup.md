@@ -42,11 +42,11 @@ Có thể xem trước mà không ghi file:
 python scripts/apply.py --include-built --dry-run
 ```
 
-Apply tạo bản sao lưu file bị thay tại `~/.local/state/miserable-xfce/backups/` và in lệnh rollback. File `~/.config/eww/settings.toml` đã có được giữ nguyên. Sau khi đăng nhập Xfce X11, service neo sidebar, Skippy Overview, Cortile và phím Windows được khởi động qua autostart.
+Apply tạo bản sao lưu file bị thay tại `~/.local/state/miserable-xfce/backups/` và in lệnh rollback. File `~/.config/eww/settings.toml` đã có được giữ nguyên. Sau khi đăng nhập Xfce X11, service neo sidebar, Skippy Overview, Cortile và phím Windows được khởi động qua autostart sau khi import môi trường X11. Các unit này là static; không cần `systemctl --user enable`. Script đăng nhập tự gỡ liên kết `default.target.wants` cũ của bốn unit để tránh khởi động trước khi có DISPLAY.
 
 ## Cấu hình và phụ thuộc
 
-Xem [cấu hình cá nhân](settings.md) trước khi cài cho tài khoản khác. Chrome/VS Code/Pamac là lựa chọn trong TOML; cài các app này hoặc đổi sang app đã có. Bộ gõ Fcitx, audio stack, DAC Simgot và màn hình ảo RustDesk thuộc cấu hình máy, không bị installer desktop tự thay thế. Chúng nằm trong snapshot home/hệ thống để phục hồi máy nguồn.
+Xem [cấu hình cá nhân](settings.md) trước khi cài cho tài khoản khác. Chrome/VS Code/Pamac là lựa chọn trong TOML; cài các app này hoặc đổi sang app đã có. Bộ gõ Fcitx, audio stack, DAC Simgot và driver tạo màn hình ảo RustDesk thuộc cấu hình máy, không bị installer desktop tự thay thế. Script/phím tắt chuyển màn hình thật/ảo được cài từ repo; tên cổng và mode nằm trong `[display]` của TOML. Chúng nằm trong snapshot home/hệ thống để phục hồi máy nguồn.
 
 Giữ các nguồn đang cần: Eww (vá thời gian IPC/compatibility), Skippy + Chipmunk (vá Ctrl+Tab/icon/DISPLAY), plugin PulseAudio (chuyển stream và chụp menu), Cortile release x86_64, xcape từ package và Numix/Numix-Circle. Chỉ giữ GTK 3/4 của Lavanda, Miserable-Chrome, font đang dùng và một hình nền được chọn. Đã bỏ profile riêng, bộ icon/theme cũ, widget Gmail/Spotify helper cũ, script Picom fork và các bản cài đa distro không dùng.
 

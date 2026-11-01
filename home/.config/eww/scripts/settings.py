@@ -26,6 +26,10 @@ def load_settings(file=None):
     command = settings['desktop']['store_command']
     if not isinstance(command, list) or not command or not all(isinstance(x, str) and x for x in command):
         raise ValueError('desktop.store_command must be a nonempty array of arguments')
+    display = settings.setdefault('display', {})
+    for key, value in {'physical_output': 'DP-4', 'virtual_output': 'HDMI-0',
+                       'virtual_mode': '1920x1080', 'virtual_rate': '60'}.items():
+        display.setdefault(key, value)
     return settings
 
 def path_setting(section, key):

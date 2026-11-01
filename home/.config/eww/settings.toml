@@ -21,3 +21,10 @@ browser = "google-chrome"
 terminal = "xfce4-terminal"
 pinned_apps = ["com.microsoft.VSCode", "xfce4-terminal", "google-chrome"]
 store_command = ["pamac-manager"]
+
+# Names from xrandr --query. The virtual output must already exist.
+[display]
+physical_output = "DP-4"
+virtual_output = "HDMI-0"
+virtual_mode = "1920x1080"
+virtual_rate = "60"

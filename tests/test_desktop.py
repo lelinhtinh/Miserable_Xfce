@@ -77,6 +77,40 @@ class DesktopTests(unittest.TestCase):
             result=subprocess.run([sys.executable,str(ROOT/'home/.config/eww/scripts/settings.py')],env={**os.environ,'MISERABLE_CONFIG':str(config)},capture_output=True,text=True)
             self.assertNotEqual(result.returncode,0);self.assertIn('weather.latitude',result.stderr)
 
+    def test_display_toggle_uses_config_and_keeps_working_output_on_failure(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            home=Path(tmp)/'user';self.install(home)
+            config=home/'.config/eww/settings.toml'
+            config.write_text(config.read_text().replace('physical_output = "DP-4"','physical_output = "DP-9"').replace('virtual_output = "HDMI-0"','virtual_output = "HDMI-9"'))
+            bindir=Path(tmp)/'bin';bindir.mkdir()
+            log=Path(tmp)/'commands'
+            xrandr=bindir/'xrandr'
+            xrandr.write_text('''#!/usr/bin/env python3
+import json,os,sys
+from pathlib import Path
+if sys.argv[1:]==['--query']:
+ print('DP-9 connected primary 2560x1440+0+0')
+ print('HDMI-9 '+os.environ.get('VIRTUAL_STATE','connected'))
+else:
+ with Path(os.environ['DISPLAY_TEST_LOG']).open('a') as file: file.write(json.dumps(sys.argv[1:])+'\\n')
+ if os.environ.get('FAIL_ENABLE') and '--mode' in sys.argv: sys.exit(1)
+''');xrandr.chmod(0o755)
+            notify=bindir/'notify-send';notify.write_text('#!/bin/sh\nexit 0\n');notify.chmod(0o755)
+            env={**os.environ,'HOME':str(home),'MISERABLE_CONFIG':str(config),'XDG_RUNTIME_DIR':tmp,'PATH':str(bindir)+os.pathsep+os.environ['PATH'],'DISPLAY_TEST_LOG':str(log)}
+            command=[str(home/'.local/bin/toggle-rustdesk-display')]
+            self.assertEqual(subprocess.run(command,env=env).returncode,0)
+            calls=[json.loads(line) for line in log.read_text().splitlines()]
+            self.assertEqual(calls,[['--output','HDMI-9','--mode','1920x1080','--rate','60','--primary','--pos','0x0'],['--output','DP-9','--off']])
+            log.unlink()
+            self.assertNotEqual(subprocess.run(command,env={**env,'FAIL_ENABLE':'1'}).returncode,0)
+            self.assertNotIn('--off',log.read_text())
+            log.unlink()
+            self.assertNotEqual(subprocess.run(command,env={**env,'VIRTUAL_STATE':'disconnected'}).returncode,0)
+            self.assertFalse(log.exists())
+            self.assertEqual(subprocess.run(command+['physical'],env=env).returncode,0)
+            calls=[json.loads(line) for line in log.read_text().splitlines()]
+            self.assertEqual(calls,[['--output','DP-9','--auto','--primary','--pos','0x0'],['--output','HDMI-9','--off']])
+
     def test_weather_uses_config_and_updates_label_without_refetch(self):
         with tempfile.TemporaryDirectory() as tmp:
             folder=Path(tmp);bindir=folder/'bin';bindir.mkdir()

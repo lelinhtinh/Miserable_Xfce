@@ -6,6 +6,3 @@ After=graphical-session.target
 ExecStart=@HOME@/.local/bin/skippy-xd --start-daemon
 Restart=on-failure
 RestartSec=2
-
-[Install]
-WantedBy=default.target

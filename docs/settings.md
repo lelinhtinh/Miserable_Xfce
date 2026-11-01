@@ -25,6 +25,12 @@ browser = "google-chrome"
 terminal = "xfce4-terminal"
 pinned_apps = ["com.microsoft.VSCode", "xfce4-terminal", "google-chrome"]
 store_command = ["pamac-manager"]
+
+[display]
+physical_output = "DP-4"
+virtual_output = "HDMI-0"
+virtual_mode = "1920x1080"
+virtual_rate = "60"
 ```
 
 | Khoá | Ý nghĩa |
@@ -41,6 +47,8 @@ store_command = ["pamac-manager"]
 | `desktop.panel_height` | Chiều cao panel 20…128 pixel; sidebar lấy chiều cao panel thật để neo vị trí. |
 | `desktop.browser`, `terminal` | Tên helper Xfce trong `/usr/share/xfce4/helpers/`; không kèm đuôi `.desktop`. Ứng dụng cần được cài sẵn. |
 | `desktop.pinned_apps` | Desktop ID ghim ở Docklike, không kèm `.desktop`. |
+| `display.physical_output`, `virtual_output` | Tên cổng thật/ảo từ `xrandr --query`. Hai cổng phải khác nhau; cổng ảo phải được hệ thống cung cấp sẵn. |
+| `display.virtual_mode`, `virtual_rate` | Độ phân giải/tần số có sẵn trên cổng ảo, mặc định `1920x1080` và `60`. |
 | `desktop.store_command` | Mảng lệnh và đối số mở Software Manager, ví dụ `["pamac-manager"]`, `["bauh"]`. Không diễn giải shell. |
 
 Kiểm tra cú pháp/giá trị trước khi áp dụng:
@@ -58,3 +66,10 @@ python ~/.local/share/miserable-xfce/configure.py --restart-panel
 Hình nền trong TOML được áp dụng khi đăng nhập và khi chạy lệnh configure ở trên. Nếu muốn tự chọn hình bằng Desktop Settings của XFCE, đặt `desktop.wallpaper = ""` để giao quyền quản lý cho XFCE.
 
 Để thử config khác mà không sửa file đang dùng, các script widget nhận biến môi trường `MISERABLE_CONFIG=/đường/dẫn/settings.toml`. File cá nhân đã có được giữ nguyên khi chạy lại installer; muốn đổi giá trị mặc định cho các máy sau, sửa file TOML trong mã nguồn.
+
+## Chuyển màn hình thật/ảo
+
+- **Ctrl+Alt+M**: chuyển qua lại giữa màn hình thật và màn hình ảo.
+- **Ctrl+Alt+P**: chuyển về màn hình thật.
+
+Script `~/.local/bin/toggle-rustdesk-display` đọc `[display]` mỗi lần chạy. Máy khác cần đổi tên cổng theo `xrandr --query`; script không tự tạo màn hình ảo hoặc cài driver RustDesk. Nếu file TOML cũ chưa có `[display]`, các giá trị mặc định ở trên được dùng. Script kiểm tra cổng đích đang connected và bật cổng đích thành công trước khi tắt cổng còn lại. Nhật ký: `${XDG_RUNTIME_DIR}/display-toggle-${UID}.log`.
