@@ -1,0 +1,26 @@
+pkgname=lightdm-gtk-greeter
+pkgver=2.0.9
+pkgrel=2.2
+epoch=1
+pkgdesc='GTK greeter with opt-in session start after successful fingerprint authentication'
+arch=('x86_64')
+url='https://github.com/Xubuntu/lightdm-gtk-greeter'
+license=('GPL3' 'LGPL3')
+depends=('gtk3' 'lightdm' 'libayatana-indicator' 'ayatana-ido' 'libxklavier')
+makedepends=('xfce4-dev-tools' 'gobject-introspection' 'gettext' 'intltool')
+backup=('etc/lightdm/lightdm-gtk-greeter.conf')
+source=('upstream-src.tar.gz' 'start-after-authentication.patch')
+sha256sums=('0da99361c4841a2840291036acc040f6280ccd368c7812d298eb682062b9d472' 'fcead5f471103ea813a3775d4d9fff8b2dce5aa39a655c95ff2acb31593a4055')
+prepare() {
+  cd lightdm-gtk-greeter
+  patch -Np1 -i ../start-after-authentication.patch
+}
+build() {
+  cd lightdm-gtk-greeter
+  ./autogen.sh --prefix=/usr --sysconfdir=/etc --sbindir=/usr/bin --enable-kill-on-sigterm --enable-at-spi-command=/usr/lib/at-spi-bus-launcher --with-libxklavier
+  make -j4
+}
+package() {
+  cd lightdm-gtk-greeter
+  make DESTDIR="$pkgdir" install
+}

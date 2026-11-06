@@ -1,4 +1,18 @@
 {
+  "elan-sigfm": {
+    "url": "https://github.com/goodix-fp-linux-dev/libfprint.git",
+    "commit": "07306bbc9256942595e31fb0f407b364ffa24d07"
+  },
+  "lightdm-gtk-greeter-2.0.9.tar.gz": {
+    "url": "https://github.com/Xubuntu/lightdm-gtk-greeter.git",
+    "commit": "21295c70377ff4b006bfa8f10cc622c56fc0851e",
+    "sha256": "0da99361c4841a2840291036acc040f6280ccd368c7812d298eb682062b9d472",
+    "archive": "git archive --format=tar --prefix=lightdm-gtk-greeter/ HEAD | gzip -n"
+  },
+  "doctest/doctest.h": {
+    "url": "https://github.com/doctest/doctest/blob/v2.4.12/doctest/doctest.h",
+    "sha256": "94029a7d32da24a56249658147dbd2b33ff0b9ed665295cbbaf19aafff5b0ced"
+  },
   "eww": {
     "url": "https://github.com/elkowar/eww.git",
     "commit": "d87c2fdbfdc012e76d229e4e9ea3325bc0f23e89"

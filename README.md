@@ -4,6 +4,8 @@ Bản fork của [mehedirm6244/Miserable_Xfce](https://github.com/mehedirm6244/M
 
 **[Cài đặt / kiểm chứng trên CachyOS](docs/setup.md)** · **[Tuỳ chỉnh cá nhân](docs/settings.md)**
 
+Tùy chọn phần cứng: [vân tay USB ELAN, Fingwit và màn hình đăng nhập LightDM](docs/fingerprint.md).
+
 ```bash
 bash scripts/installer.sh --snapshot
 bash scripts/installer.sh --baseline

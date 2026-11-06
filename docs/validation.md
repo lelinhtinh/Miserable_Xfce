@@ -1,4 +1,8 @@
-# Kiểm chứng ngày 01/11/2026
+# Kiểm chứng
+
+Kết quả sửa vân tay ELAN và LightDM ngày 06/11/2026 được ghi trong [fingerprint.md](fingerprint.md#kết-quả-ngày-06112026).
+
+## Ngày 01/11/2026
 
 ## Snapshot trước thay đổi
 

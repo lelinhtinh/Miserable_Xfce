@@ -1,0 +1,450 @@
+diff --git a/libfprint/drivers/elan.c b/libfprint/drivers/elan.c
+index 1b5d1e7..f44535a 100644
+--- a/libfprint/drivers/elan.c
++++ b/libfprint/drivers/elan.c
+@@ -78,6 +78,7 @@ struct _FpiDeviceElan
+   unsigned char  *last_read;
+   unsigned char   calib_atts_left;
+   unsigned char   calib_status;
++  unsigned char   background_atts_left;
+   unsigned short *background;
+   unsigned char   frame_width;
+   unsigned char   frame_height;
+@@ -146,7 +147,7 @@ elan_save_frame (FpiDeviceElan *self, unsigned short *frame)
+           raw_idx = frame_margin + y + x * raw_height;
+         frame_idx = x + y * frame_width;
+         frame[frame_idx] =
+-          ((unsigned short *) self->last_read)[raw_idx];
++          GUINT16_FROM_LE (((unsigned short *) self->last_read)[raw_idx]);
+       }
+ }
+ 
+@@ -251,7 +252,12 @@ elan_process_frame_linear (unsigned short *raw_frame,
+         max = raw_frame[i];
+     }
+ 
+-  g_assert (max != min);
++  if (max == min)
++    {
++      memset (frame->data, 0, frame_size);
++      *frames = g_slist_prepend (*frames, frame);
++      g_return_if_reached ();
++    }
+ 
+   unsigned short px;
+ 
+@@ -287,6 +293,11 @@ elan_process_frame_thirds (unsigned short *raw_frame,
+   lvl3 = sorted[frame_size - 1];
+   g_free (sorted);
+ 
++  /* Ensure levels are strictly monotonic to prevent division by zero */
++  lvl1 = MAX (lvl1, lvl0 + 1);
++  lvl2 = MAX (lvl2, lvl1 + 1);
++  lvl3 = MAX (lvl3, lvl2 + 1);
++
+   unsigned short px;
+ 
+   for (int i = 0; i < frame_size; i++)
+@@ -314,11 +325,44 @@ elan_submit_image (FpImageDevice *dev)
+ 
+   G_DEBUG_HERE ();
+ 
+-  raw_frames = g_slist_nth (self->frames, ELAN_SKIP_LAST_FRAMES);
+-
+   assembling_ctx.frame_width = self->frame_width;
+   assembling_ctx.frame_height = self->frame_height;
+   assembling_ctx.image_width = self->frame_width * 3 / 2;
++
++  if (self->dev_type & ELAN_PRESS)
++    {
++      g_autoptr(FpImage) frame_img = NULL;
++      struct fpi_frame *frame;
++
++      /* Average three settled frames to reduce read noise. */
++      g_autofree unsigned short *settled = g_new0 (unsigned short, self->frame_width * self->frame_height);
++      unsigned int count = MIN (3, g_slist_length (self->frames));
++      for (unsigned int pixel = 0; pixel < self->frame_width * self->frame_height; pixel++)
++        {
++          unsigned int sum = 0;
++          GSList *node = self->frames;
++          for (unsigned int i = 0; i < count; i++, node = node->next)
++            sum += ((unsigned short *) node->data)[pixel];
++          settled[pixel] = sum / count;
++        }
++      self->process_frame (settled, &frames);
++      frame = frames->data;
++
++      frame_img = fp_image_new (self->frame_width, self->frame_height);
++      memcpy (frame_img->data, frame->data,
++              self->frame_width * self->frame_height);
++      g_slist_free_full (frames, g_free);
++
++      img = g_steal_pointer (&frame_img);
++      img->flags |= FPI_IMAGE_PARTIAL;
++      fp_dbg ("press image %dx%d", img->width, img->height);
++
++      fpi_image_device_image_captured (dev, img);
++      return;
++    }
++
++  raw_frames = g_slist_nth (self->frames, ELAN_SKIP_LAST_FRAMES);
++
+   g_slist_foreach (raw_frames, (GFunc) self->process_frame, &frames);
+   fpi_do_movement_estimation (&assembling_ctx, frames);
+   img = fpi_assemble_frames (&assembling_ctx, frames);
+@@ -547,13 +591,16 @@ capture_run_state (FpiSsm *ssm, FpDevice *dev)
+           fpi_image_device_report_finger_status (idev, TRUE);
+           elan_run_cmd (ssm, dev, &get_image_cmd, ELAN_CMD_TIMEOUT);
+         }
++      else if (self->dev_type == ELAN_0C58 && self->last_read &&
++               (self->last_read[0] == 0x00 || self->last_read[0] == 0xaf))
++        {
++          /* 0x00 - not ready
++           * 0xaf - finger removed or sensor busy (seen on 0x0c58) */
++          fpi_ssm_jump_to_state_delayed (ssm, CAPTURE_WAIT_FINGER, 10);
++        }
+       else
+         {
+-          /* XXX: The timeout is emulated incorrectly, resulting in a zero byte read. */
+-          if (g_strcmp0 (g_getenv ("FP_DEVICE_EMULATION"), "1") == 0)
+-            fpi_ssm_mark_completed (ssm);
+-          else
+-            fpi_ssm_mark_failed (ssm, fpi_device_error_new (FP_DEVICE_ERROR_PROTO));
++          fpi_ssm_mark_failed (ssm, fpi_device_error_new (FP_DEVICE_ERROR_PROTO));
+         }
+       break;
+ 
+@@ -563,6 +610,11 @@ capture_run_state (FpiSsm *ssm, FpDevice *dev)
+         {
+           fpi_ssm_mark_failed (ssm, fpi_device_error_new (FP_DEVICE_ERROR_GENERAL));
+         }
++      else if ((self->dev_type & ELAN_PRESS) &&
++               self->num_frames >= ELAN_PRESS_FRAMES)
++        {
++          fpi_ssm_next_state (ssm);
++        }
+       else if (self->num_frames < ELAN_MAX_FRAMES)
+         {
+           /* quickly stop if finger is removed */
+@@ -582,6 +634,8 @@ capture_complete (FpiSsm *ssm, FpDevice *_dev, GError *error)
+ {
+   FpImageDevice *dev = FP_IMAGE_DEVICE (_dev);
+   FpiDeviceElan *self = FPI_DEVICE_ELAN (_dev);
++  int min_frames = (self->dev_type & ELAN_PRESS) ?
++                   ELAN_PRESS_FRAMES : ELAN_MIN_FRAMES;
+ 
+   G_DEBUG_HERE ();
+ 
+@@ -590,14 +644,20 @@ capture_complete (FpiSsm *ssm, FpDevice *_dev, GError *error)
+       (g_error_matches (error, G_USB_DEVICE_ERROR, G_USB_DEVICE_ERROR_TIMED_OUT) &&
+        fpi_ssm_get_cur_state (ssm) == CAPTURE_WAIT_FINGER))
+     {
+-      if (self->num_frames >= ELAN_MIN_FRAMES)
++      if (self->num_frames >= min_frames)
+         {
+           elan_submit_image (dev);
+         }
++      else if (self->dev_type & ELAN_PRESS)
++        {
++          fp_dbg ("finger removed too early: want >= %d frames, got %d",
++                  min_frames, self->num_frames);
++          fpi_image_device_retry_scan (dev, FP_DEVICE_RETRY_REMOVE_FINGER);
++        }
+       else
+         {
+           fp_dbg ("swipe too short: want >= %d frames, got %d",
+-                  ELAN_MIN_FRAMES, self->num_frames);
++                  min_frames, self->num_frames);
+           fpi_image_device_retry_scan (dev, FP_DEVICE_RETRY_TOO_SHORT);
+         }
+       g_clear_error (&error);
+@@ -664,6 +724,7 @@ elan_need_calibration (FpiDeviceElan *elandev)
+ }
+ 
+ enum calibrate_states {
++  CALIBRATE_WAIT_FINGER_CLEAR,
+   CALIBRATE_GET_BACKGROUND,
+   CALIBRATE_SAVE_BACKGROUND,
+   CALIBRATE_GET_MEAN,
+@@ -692,6 +753,16 @@ calibrate_run_state (FpiSsm *ssm, FpDevice *dev)
+ 
+   switch (fpi_ssm_get_cur_state (ssm))
+     {
++    case CALIBRATE_WAIT_FINGER_CLEAR:
++      /* ELAN 04f3:0c3d may signal finger-off while the trailing edge still
++       * covers the sensor. Let it clear before measuring the background.
++       * This does not alter fingerprint matching or calibration limits. */
++      if (g_usb_device_get_pid (fpi_device_get_usb_device (dev)) == 0x0c3d)
++        fpi_ssm_next_state_delayed (ssm, 800);
++      else
++        fpi_ssm_next_state (ssm);
++      break;
++
+     case CALIBRATE_GET_BACKGROUND:
+       elan_run_cmd (ssm, dev, &get_image_cmd, ELAN_CMD_TIMEOUT);
+       break;
+@@ -716,6 +787,15 @@ calibrate_run_state (FpiSsm *ssm, FpDevice *dev)
+     case CALIBRATE_CHECK_NEEDED:
+       if (elan_need_calibration (self))
+         {
++          /* A press may still cover the sensor when capture completes.
++           * Recheck the empty background before starting recalibration. */
++          if (g_usb_device_get_pid (fpi_device_get_usb_device (dev)) == 0x0c3d &&
++              self->background_atts_left > 0)
++            {
++              self->background_atts_left--;
++              fpi_ssm_jump_to_state_delayed (ssm, CALIBRATE_GET_BACKGROUND, 500);
++              break;
++            }
+           self->calib_status = 0;
+           fpi_ssm_next_state (ssm);
+         }
+@@ -795,7 +875,8 @@ elan_calibrate (FpiDeviceElan *self)
+ 
+   g_return_if_fail (!self->active);
+   self->active = TRUE;
+-  self->calib_atts_left = ELAN_CALIBRATION_ATTEMPTS;
++  self->calib_atts_left = ELAN_CALIBRATION_ATTEMPTS (self->dev_type);
++  self->background_atts_left = 6;
+ 
+   FpiSsm *ssm = fpi_ssm_new (FP_DEVICE (self), calibrate_run_state,
+                              CALIBRATE_NUM_STATES);
+@@ -859,7 +940,8 @@ activate_run_state (FpiSsm *ssm, FpDevice *dev)
+           self->frame_height++;
+           self->raw_frame_height = self->frame_height;
+         }
+-      if (self->frame_height > ELAN_MAX_FRAME_HEIGHT)
++      if (!(self->dev_type & ELAN_PRESS) &&
++          self->frame_height > ELAN_MAX_FRAME_HEIGHT)
+         self->frame_height = ELAN_MAX_FRAME_HEIGHT;
+       fp_dbg ("sensor dimensions, WxH: %dx%d", self->frame_width,
+               self->raw_frame_height);
+@@ -918,7 +1000,7 @@ dev_init (FpImageDevice *dev)
+   /* common params */
+   self->dev_type = fpi_device_get_driver_data (FP_DEVICE (dev));
+   self->background = NULL;
+-  self->process_frame = elan_process_frame_thirds;
++  self->process_frame = elan_process_frame_linear;
+ 
+   switch (self->dev_type)
+     {
+@@ -927,6 +1009,9 @@ dev_init (FpImageDevice *dev)
+       break;
+     }
+ 
++  if (self->dev_type & ELAN_PRESS)
++    fpi_device_set_scan_type (FP_DEVICE (dev), FP_SCAN_TYPE_PRESS);
++
+   fpi_image_device_open_complete (dev, NULL);
+ }
+ 
+@@ -994,11 +1079,12 @@ fpi_device_elan_class_init (FpiDeviceElanClass *klass)
+   FpDeviceClass *dev_class = FP_DEVICE_CLASS (klass);
+   FpImageDeviceClass *img_class = FP_IMAGE_DEVICE_CLASS (klass);
+ 
+-  dev_class->id = "elan";
+-  dev_class->full_name = "ElanTech Fingerprint Sensor";
++  dev_class->id = "elan-sigfm";
++  dev_class->full_name = "ELAN 04f3:0c3d (SIGFM)";
+   dev_class->type = FP_DEVICE_TYPE_USB;
+   dev_class->id_table = elan_id_table;
+-  dev_class->scan_type = FP_SCAN_TYPE_SWIPE;
++  dev_class->nr_enroll_stages = 15;
++  dev_class->scan_type = FP_SCAN_TYPE_PRESS;
+ 
+   img_class->img_open = dev_init;
+   img_class->img_close = dev_deinit;
+@@ -1006,5 +1092,6 @@ fpi_device_elan_class_init (FpiDeviceElanClass *klass)
+   img_class->deactivate = dev_deactivate;
+   img_class->change_state = dev_change_state;
+ 
+-  img_class->bz3_threshold = 24;
++  img_class->algorithm = FPI_DEVICE_ALGO_SIGFM;
++  img_class->bz3_threshold = 100;
+ }
+diff --git a/libfprint/drivers/elan.h b/libfprint/drivers/elan.h
+index 7d08994..d00b18c 100644
+--- a/libfprint/drivers/elan.h
++++ b/libfprint/drivers/elan.h
+@@ -31,6 +31,11 @@
+ #define ELAN_0907 (1 << 0)
+ #define ELAN_0C03 (1 << 1)
+ #define ELAN_0C42 (1 << 2)
++#define ELAN_0C58 (1 << 3)
++
++/* area (press) sensors: a single frame covers enough of the finger, so
++ * frames are not stitched together (stitching corrupts the ridges) */
++#define ELAN_PRESS (1 << 4)
+ 
+ /* devices which don't require frame rotation before assembling */
+ #define ELAN_NOT_ROTATED ELAN_0C03
+@@ -44,12 +49,22 @@
+ 
+ /* times to retry reading calibration status during one session
+  * generally prevents calibration from looping indefinitely */
+-#define ELAN_CALIBRATION_ATTEMPTS 10
++#define ELAN_DEFAULT_CALIBRATION_ATTEMPTS 10
++#define ELAN_CALIBRATION_ATTEMPTS(dev_type) \
++  ((dev_type) == ELAN_0C58 ? 30 : ELAN_DEFAULT_CALIBRATION_ATTEMPTS)
+ 
+ /* min and max frames in a capture */
+ #define ELAN_MIN_FRAMES 7
+ #define ELAN_MAX_FRAMES 30
+ 
++/* frames to read on press sensors before taking the last one, gives the
++ * finger time to settle on the sensor */
++#define ELAN_PRESS_FRAMES 12
++
++/* upscale factor for press sensor images, small images give NBIS too few
++ * minutiae */
++#define ELAN_PRESS_SCALE 2
++
+ /* crop frames to this height to improve stitching */
+ #define ELAN_MAX_FRAME_HEIGHT 50
+ 
+@@ -160,68 +175,8 @@ static const struct elan_cmd stop_cmd = {
+ };
+ 
+ static const FpIdEntry elan_id_table[] = {
+-  {.vid = ELAN_VEND_ID,  .pid = 0x0903, .driver_data = ELAN_ALL_DEV},
+-  {.vid = ELAN_VEND_ID,  .pid = 0x0907, .driver_data = ELAN_0907},
+-  {.vid = ELAN_VEND_ID,  .pid = 0x0c01, .driver_data = ELAN_ALL_DEV},
+-  {.vid = ELAN_VEND_ID,  .pid = 0x0c02, .driver_data = ELAN_ALL_DEV},
+-  {.vid = ELAN_VEND_ID,  .pid = 0x0c03, .driver_data = ELAN_0C03},
+-  {.vid = ELAN_VEND_ID,  .pid = 0x0c04, .driver_data = ELAN_ALL_DEV},
+-  {.vid = ELAN_VEND_ID,  .pid = 0x0c05, .driver_data = ELAN_ALL_DEV},
+-  {.vid = ELAN_VEND_ID,  .pid = 0x0c06, .driver_data = ELAN_ALL_DEV},
+-  {.vid = ELAN_VEND_ID,  .pid = 0x0c07, .driver_data = ELAN_ALL_DEV},
+-  {.vid = ELAN_VEND_ID,  .pid = 0x0c08, .driver_data = ELAN_ALL_DEV},
+-  {.vid = ELAN_VEND_ID,  .pid = 0x0c09, .driver_data = ELAN_ALL_DEV},
+-  {.vid = ELAN_VEND_ID,  .pid = 0x0c0a, .driver_data = ELAN_ALL_DEV},
+-  {.vid = ELAN_VEND_ID,  .pid = 0x0c0b, .driver_data = ELAN_ALL_DEV},
+-  {.vid = ELAN_VEND_ID,  .pid = 0x0c0c, .driver_data = ELAN_ALL_DEV},
+-  {.vid = ELAN_VEND_ID,  .pid = 0x0c0d, .driver_data = ELAN_ALL_DEV},
+-  {.vid = ELAN_VEND_ID,  .pid = 0x0c0e, .driver_data = ELAN_ALL_DEV},
+-  {.vid = ELAN_VEND_ID,  .pid = 0x0c0f, .driver_data = ELAN_ALL_DEV},
+-  {.vid = ELAN_VEND_ID,  .pid = 0x0c10, .driver_data = ELAN_ALL_DEV},
+-  {.vid = ELAN_VEND_ID,  .pid = 0x0c11, .driver_data = ELAN_ALL_DEV},
+-  {.vid = ELAN_VEND_ID,  .pid = 0x0c12, .driver_data = ELAN_ALL_DEV},
+-  {.vid = ELAN_VEND_ID,  .pid = 0x0c13, .driver_data = ELAN_ALL_DEV},
+-  {.vid = ELAN_VEND_ID,  .pid = 0x0c14, .driver_data = ELAN_ALL_DEV},
+-  {.vid = ELAN_VEND_ID,  .pid = 0x0c15, .driver_data = ELAN_ALL_DEV},
+-  {.vid = ELAN_VEND_ID,  .pid = 0x0c16, .driver_data = ELAN_ALL_DEV},
+-  {.vid = ELAN_VEND_ID,  .pid = 0x0c17, .driver_data = ELAN_ALL_DEV},
+-  {.vid = ELAN_VEND_ID,  .pid = 0x0c18, .driver_data = ELAN_ALL_DEV},
+-  {.vid = ELAN_VEND_ID,  .pid = 0x0c19, .driver_data = ELAN_ALL_DEV},
+-  {.vid = ELAN_VEND_ID,  .pid = 0x0c1a, .driver_data = ELAN_ALL_DEV},
+-  {.vid = ELAN_VEND_ID,  .pid = 0x0c1b, .driver_data = ELAN_ALL_DEV},
+-  {.vid = ELAN_VEND_ID,  .pid = 0x0c1c, .driver_data = ELAN_ALL_DEV},
+-  {.vid = ELAN_VEND_ID,  .pid = 0x0c1d, .driver_data = ELAN_ALL_DEV},
+-  {.vid = ELAN_VEND_ID,  .pid = 0x0c1e, .driver_data = ELAN_ALL_DEV},
+-  {.vid = ELAN_VEND_ID,  .pid = 0x0c1f, .driver_data = ELAN_ALL_DEV},
+-  {.vid = ELAN_VEND_ID,  .pid = 0x0c20, .driver_data = ELAN_ALL_DEV},
+-  {.vid = ELAN_VEND_ID,  .pid = 0x0c21, .driver_data = ELAN_ALL_DEV},
+-  {.vid = ELAN_VEND_ID,  .pid = 0x0c22, .driver_data = ELAN_ALL_DEV},
+-  {.vid = ELAN_VEND_ID,  .pid = 0x0c23, .driver_data = ELAN_ALL_DEV},
+-  {.vid = ELAN_VEND_ID,  .pid = 0x0c24, .driver_data = ELAN_ALL_DEV},
+-  {.vid = ELAN_VEND_ID,  .pid = 0x0c25, .driver_data = ELAN_ALL_DEV},
+-  {.vid = ELAN_VEND_ID,  .pid = 0x0c26, .driver_data = ELAN_ALL_DEV},
+-  {.vid = ELAN_VEND_ID,  .pid = 0x0c27, .driver_data = ELAN_ALL_DEV},
+-  {.vid = ELAN_VEND_ID,  .pid = 0x0c28, .driver_data = ELAN_ALL_DEV},
+-  {.vid = ELAN_VEND_ID,  .pid = 0x0c29, .driver_data = ELAN_ALL_DEV},
+-  {.vid = ELAN_VEND_ID,  .pid = 0x0c2a, .driver_data = ELAN_ALL_DEV},
+-  {.vid = ELAN_VEND_ID,  .pid = 0x0c2b, .driver_data = ELAN_ALL_DEV},
+-  {.vid = ELAN_VEND_ID,  .pid = 0x0c2c, .driver_data = ELAN_ALL_DEV},
+-  {.vid = ELAN_VEND_ID,  .pid = 0x0c2d, .driver_data = ELAN_ALL_DEV},
+-  {.vid = ELAN_VEND_ID,  .pid = 0x0c2e, .driver_data = ELAN_ALL_DEV},
+-  {.vid = ELAN_VEND_ID,  .pid = 0x0c2f, .driver_data = ELAN_ALL_DEV},
+-  {.vid = ELAN_VEND_ID,  .pid = 0x0c30, .driver_data = ELAN_ALL_DEV},
+-  {.vid = ELAN_VEND_ID,  .pid = 0x0c31, .driver_data = ELAN_ALL_DEV},
+-  {.vid = ELAN_VEND_ID,  .pid = 0x0c32, .driver_data = ELAN_ALL_DEV},
+-  {.vid = ELAN_VEND_ID,  .pid = 0x0c33, .driver_data = ELAN_ALL_DEV},
+-  {.vid = ELAN_VEND_ID,  .pid = 0x0c3d, .driver_data = ELAN_ALL_DEV},
+-  {.vid = ELAN_VEND_ID,  .pid = 0x0c42, .driver_data = ELAN_0C42},
+-  {.vid = ELAN_VEND_ID,  .pid = 0x0c4b, .driver_data = ELAN_ALL_DEV},
+-  {.vid = ELAN_VEND_ID,  .pid = 0x0c4d, .driver_data = ELAN_ALL_DEV},
+-  {.vid = ELAN_VEND_ID,  .pid = 0x0c4f, .driver_data = ELAN_ALL_DEV},
+-  {.vid = ELAN_VEND_ID,  .pid = 0x0c63, .driver_data = ELAN_ALL_DEV},
+-  {.vid = ELAN_VEND_ID,  .pid = 0x0c6e, .driver_data = ELAN_ALL_DEV},
+-  {.vid = ELAN_VEND_ID,  .pid = 0x0c58, .driver_data = ELAN_ALL_DEV},
+-  {.vid = 0,  .pid = 0,  .driver_data = 0},
++  {.vid = ELAN_VEND_ID, .pid = 0x0c3d, .driver_data = ELAN_PRESS},
++  { .vid = 0, .pid = 0, .driver_data = 0 },
+ };
+ 
+ static void elan_cmd_done (FpiSsm *ssm);
+diff --git a/libfprint/meson.build b/libfprint/meson.build
+index 7d75550..34e9fd9 100644
+--- a/libfprint/meson.build
++++ b/libfprint/meson.build
+@@ -144,6 +144,7 @@ driver_sources = {
+ }
+ 
+ helper_sources = {
++    'pixman' : [],
+     'aeslib' :
+         [ 'drivers/aeslib.c' ],
+     'aesx660' :
+diff --git a/libfprint/sigfm/meson.build b/libfprint/sigfm/meson.build
+index b04154d..ed20ddb 100644
+--- a/libfprint/sigfm/meson.build
++++ b/libfprint/sigfm/meson.build
+@@ -1,11 +1,18 @@
+-
+-sigfm_sources = ['sigfm.cpp']
+-
+-opencv = dependency('opencv4', required: true, version: '>=4.5.0')
+-doctest = dependency('doctest', required: true, version: ['>=2.0.0', '<3.0.0'])
+-
+-libsigfm = static_library('sigfm',
+-        sigfm_sources,
+-        dependencies: [opencv],
+-)
+-sigfm_tests = executable('sigfm-tests', ['./tests.cpp'], dependencies: [doctest, opencv], link_with: [libsigfm])
++cv_pkg = dependency('opencv5', required: false)
++if not cv_pkg.found()
++    cv_pkg = dependency('opencv4', required: true)
++endif
++cv_core = cpp.find_library('opencv_core', required: true)
++cv_features = cpp.find_library('opencv_features', required: false)
++if not cv_features.found()
++    cv_features = cpp.find_library('opencv_features2d', required: true)
++endif
++cv_imgproc = cpp.find_library('opencv_imgproc', required: true)
++opencv = declare_dependency(
++    include_directories: include_directories(cv_pkg.get_variable(pkgconfig: 'includedir')),
++    dependencies: [cv_core, cv_features, cv_imgproc])
++libsigfm = static_library('sigfm', ['sigfm.cpp'], dependencies: [opencv])
++sigfm_tests = executable('sigfm-tests', ['tests.cpp'],
++    include_directories: include_directories('vendor'),
++    dependencies: [opencv], link_with: [libsigfm])
++test('sigfm', sigfm_tests, timeout: 60)
+diff --git a/meson.build b/meson.build
+index 1badb16..9cec458 100644
+--- a/meson.build
++++ b/meson.build
+@@ -5,6 +5,7 @@ project('libfprint', [ 'c', 'cpp' ],
+         'buildtype=debugoptimized',
+         'warning_level=1',
+         'c_std=gnu99',
++        'cpp_std=c++17',
+     ],
+     meson_version: '>= 0.49.0')
+ 
+@@ -149,6 +150,7 @@ if drivers == [ 'default' ]
+ endif
+ 
+ driver_helper_mapping = {
++    'elan' : [ 'pixman' ],
+     'aes1610' : [ 'aeslib' ],
+     'aes1660' : [ 'aeslib', 'aesx660' ],
+     'aes2501' : [ 'aeslib' ],
+@@ -205,7 +207,7 @@ foreach i : driver_helpers
+         endif
+     endforeach
+ 
+-    if i == 'aes3k'
++    if i == 'aes3k' or i == 'pixman'
+         imaging_dep = dependency('pixman-1', required: false)
+         if not imaging_dep.found()
+             error('pixman is required for @0@ and possibly others'.format(driver))

@@ -1,0 +1,39 @@
+diff --git a/data/lightdm-gtk-greeter.conf b/data/lightdm-gtk-greeter.conf
+index 858b40a..ed1d7b1 100644
+--- a/data/lightdm-gtk-greeter.conf
++++ b/data/lightdm-gtk-greeter.conf
+@@ -47,6 +47,7 @@
+ #  screensaver-timeout = Timeout (in seconds) until the screen blanks when the greeter is called as lockscreen
+ #
+ # Session:
++#  start-session-on-authentication-success = true|false (false by default). Start after successful non-interactive authentication, such as a fingerprint.
+ #  default-session = session manager to be started when none has been selected by the user and no one is set as last used (unset by default)
+ #
+ # Template for per-monitor configuration:
+diff --git a/src/greeterconfiguration.h b/src/greeterconfiguration.h
+index 3e77e93..c34ef8a 100644
+--- a/src/greeterconfiguration.h
++++ b/src/greeterconfiguration.h
+@@ -18,6 +18,7 @@
+ #define CONFIG_KEY_INDICATORS           "indicators"
+ #define CONFIG_KEY_DEFAULT_SESSION      "default-session"
+ #define CONFIG_KEY_DEBUGGING            "allow-debugging"
++#define CONFIG_KEY_START_ON_AUTH_SUCCESS "start-session-on-authentication-success"
+ #define CONFIG_KEY_SCREENSAVER_TIMEOUT  "screensaver-timeout"
+ #define CONFIG_KEY_THEME                "theme-name"
+ #define CONFIG_KEY_ICON_THEME           "icon-theme-name"
+diff --git a/src/lightdm-gtk-greeter.c b/src/lightdm-gtk-greeter.c
+index 1373bbf..e785a9a 100644
+--- a/src/lightdm-gtk-greeter.c
++++ b/src/lightdm-gtk-greeter.c
+@@ -2622,7 +2622,9 @@ authentication_complete_cb (LightDMGreeter *ldm)
+ 
+     if (lightdm_greeter_get_is_authenticated (ldm))
+     {
+-        if (prompted)
++        /* Biometric PAM can authenticate without a password prompt. Starting
++         * the selected session still requires successful LightDM authentication. */
++        if (prompted || config_get_bool (NULL, CONFIG_KEY_START_ON_AUTH_SUCCESS, FALSE))
+             start_session ();
+         else
+         {
