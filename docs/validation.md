@@ -57,3 +57,11 @@ Bản sao trước reset có Ctrl+Alt+M/P gọi `toggle-rustdesk-display`; cấu
 ## Đối chiếu lại snapshot
 
 Đã rà soát lại home snapshot và root #651 sau khi khôi phục phím chuyển màn hình. Kết quả, cấu hình còn thiếu đã bổ sung và giới hạn kiểm chứng được ghi tại [snapshot-audit.md](snapshot-audit.md); hướng dẫn dùng bộ gõ/âm thanh/màn hình ảo trên máy đích tại [restore.md](restore.md). Tổng cộng 14 kiểm thử đạt.
+
+## Tray chuyển màn hình thật/ảo
+
+Đã thêm user service `miserable-display-tray.service`, khởi động qua phiên XFCE sau khi import môi trường X11. Menu và tooltip đọc trạng thái XRandR mỗi 3 giây; menu cho phép chuyển màn hình và gửi thông báo trạng thái hiện tại. Thông báo sau khi chuyển đọc lại trạng thái thực, kể cả khi chỉ một phần thao tác thành công.
+
+**16 kiểm thử đạt**, gồm các layout thật/ảo/cả hai/cổng khác, toạ độ âm, cổng không kết nối, lỗi truy vấn, chuyển hai chiều và lỗi bật/tắt cổng. Kiểm tra GTK trên phiên hiện tại xác nhận biểu tượng được nhúng vào tray, menu gọi đúng helper, cập nhật nhãn và vô hiệu hoá nút khi cổng đích disconnected. Các thao tác chuyển trong kiểm tra dùng XRandR mô phỏng; chưa chuyển cổng thật trong lượt này.
+
+Đã cài các file liên quan có backup và bật service trên máy hiện tại: `active (running)`, `NRestarts=0`; xác nhận cửa sổ tray `miserable-display` đang hiển thị trong cây X11. Trạng thái đo được: **màn hình ảo HDMI-0, 1920×1080**, DP-4 connected nhưng chưa bật. Chưa kiểm tra lại bằng đăng xuất/reboot.

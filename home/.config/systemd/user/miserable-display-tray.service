@@ -1,0 +1,8 @@
+[Unit]
+Description=Physical and virtual display tray switcher
+After=graphical-session.target
+
+[Service]
+ExecStart=/usr/bin/python @HOME@/.local/share/miserable-xfce/display-tray.py
+Restart=on-failure
+RestartSec=2

@@ -42,7 +42,7 @@ Có thể xem trước mà không ghi file:
 python scripts/apply.py --include-built --dry-run
 ```
 
-Apply tạo bản sao lưu file bị thay tại `~/.local/state/miserable-xfce/backups/` và in lệnh rollback. File `~/.config/eww/settings.toml` đã có được giữ nguyên. Sau khi đăng nhập Xfce X11, service neo sidebar, Skippy Overview, Cortile và phím Windows được khởi động qua autostart sau khi import môi trường X11. Các unit này là static; không cần `systemctl --user enable`. Script đăng nhập tự gỡ liên kết `default.target.wants` cũ của bốn unit để tránh khởi động trước khi có DISPLAY.
+Apply tạo bản sao lưu file bị thay tại `~/.local/state/miserable-xfce/backups/` và in lệnh rollback. File `~/.config/eww/settings.toml` đã có được giữ nguyên. Sau khi đăng nhập Xfce X11, service neo sidebar, Skippy Overview, Cortile, phím Windows và tray chuyển màn hình thật/ảo được khởi động qua autostart sau khi import môi trường X11. Các unit này là static; không cần `systemctl --user enable`. Script đăng nhập tự gỡ liên kết `default.target.wants` cũ của các unit này để tránh khởi động trước khi có DISPLAY.
 
 ## Cấu hình và phụ thuộc
 

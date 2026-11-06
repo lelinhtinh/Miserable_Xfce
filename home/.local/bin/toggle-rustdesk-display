@@ -1,18 +1,25 @@
 #!/bin/bash
 set -euo pipefail
+status="$HOME/.local/share/miserable-xfce/display_status.py"
+if [[ ${1:-} == status ]]; then
+  shift
+  exec python "$status" "$@"
+fi
 exec >>"${XDG_RUNTIME_DIR:-/tmp}/display-toggle-$UID.log" 2>&1
 date -Is
 exec 9>"${XDG_RUNTIME_DIR:-/tmp}/toggle-rustdesk-display-$UID.lock"
 flock -w 3 9 || exit 0
+# Report failures together with the actual state; never retain the switch lock in a child.
+trap 'result=$?; flock -u 9; exec 9>&-; python "$status" --notify --error & exit "$result"' ERR
 settings="$HOME/.config/eww/scripts/settings.py"
 physical=$(python "$settings" display physical_output)
 virtual=$(python "$settings" display virtual_output)
 resolution=$(python "$settings" display virtual_mode)
 rate=$(python "$settings" display virtual_rate)
-[[ "$physical" != "$virtual" ]] || { echo 'Physical and virtual outputs must differ'; exit 1; }
+[[ "$physical" != "$virtual" ]] || { echo 'Physical and virtual outputs must differ'; false; }
 mode=${1:-toggle}
 if [ "$mode" = toggle ]; then
-  if xrandr --query | awk -v output="$physical" '$1==output && $2=="connected" {for(i=3;i<=NF;i++) if($i ~ /^[0-9]+x[0-9]+\+/) active=1} END{exit !active}'; then mode=virtual; else mode=physical; fi
+  if xrandr --query | awk -v output="$physical" '$1==output && $2=="connected" {for(i=3;i<=NF;i++) if($i ~ /^[0-9]+x[0-9]+[+-][0-9]+[+-][0-9]+$/) active=1} END{exit !active}'; then mode=virtual; else mode=physical; fi
 fi
 case "$mode" in
  virtual) target=$virtual;;
@@ -21,20 +28,20 @@ case "$mode" in
 esac
 # Verify the target exists before changing any output; enable it before disabling the other.
 xrandr --query | awk -v output="$target" '$1==output && $2=="connected" {found=1} END{exit !found}' || {
- echo "Output is not connected: $target"; exit 1;
+ echo "Output is not connected: $target"; false;
 }
 case "$mode" in
  virtual)
   xrandr --output "$virtual" --mode "$resolution" --rate "$rate" --primary --pos 0x0
   xrandr --output "$physical" --off
-  label="Màn hình ảo $resolution";;
+  ;;
  physical)
   xrandr --output "$physical" --auto --primary --pos 0x0
   xrandr --output "$virtual" --off
-  label='Màn hình thật';;
+  ;;
  *) exit 2;;
 esac
 flock -u 9
 exec 9>&-
-# Release the lock before invoking notification or power-management clients.
-notify-send -t 2000 'Chuyển màn hình' "$label" >/dev/null 2>&1 &
+# Release the lock before reading status or sending notifications.
+python "$status" --notify >/dev/null 2>&1 &

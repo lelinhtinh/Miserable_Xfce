@@ -70,10 +70,15 @@ Hình nền trong TOML được áp dụng khi đăng nhập và khi chạy lệ
 
 ## Chuyển màn hình thật/ảo
 
+- Biểu tượng **màn hình** trong system tray mở menu bằng chuột trái hoặc phải: xem loại màn hình/cổng/độ phân giải đang dùng, **Chuyển sang màn hình ảo/thật**, hoặc **Thông báo trạng thái hiện tại**. Nút chuyển bị vô hiệu hoá nếu cổng đích chưa kết nối.
+- Màn hình thật dùng icon màn hình có chân đế màu xanh; màn hình ảo dùng icon hai khung chồng nhau màu tím, có nét đứt. Icon tự đổi theo trạng thái thực.
+- Menu và tooltip đọc trạng thái thực từ XRandR mỗi 3 giây, kể cả khi chuyển bằng phím tắt hoặc Display Settings. Sau mỗi lần chuyển, thông báo hiển thị trạng thái hiện tại; nếu chuyển lỗi, thông báo lỗi kèm trạng thái thực để tránh báo nhầm đã chuyển thành công.
 - **Ctrl+Alt+M**: chuyển qua lại giữa màn hình thật và màn hình ảo.
 - **Ctrl+Alt+P**: chuyển về màn hình thật.
 
 Script `~/.local/bin/toggle-rustdesk-display` đọc `[display]` mỗi lần chạy. Máy khác cần đổi tên cổng theo `xrandr --query`; script không tự tạo màn hình ảo hoặc cài driver RustDesk. Nếu file TOML cũ chưa có `[display]`, các giá trị mặc định ở trên được dùng. Script kiểm tra cổng đích đang connected và bật cổng đích thành công trước khi tắt cổng còn lại. Nhật ký: `${XDG_RUNTIME_DIR}/display-toggle-${UID}.log`.
+
+Xem trạng thái từ terminal: `~/.local/bin/toggle-rustdesk-display status` (thêm `--json` để đọc bằng chương trình, `--notify` để hiện thông báo). Tray dùng GTK 3 đã có trong phụ thuộc và chạy bằng user service `miserable-display-tray.service`, được khởi động cùng phiên XFCE; xem lỗi bằng `journalctl --user -u miserable-display-tray.service`.
 
 ## Bộ gõ, bookmark và cấu hình phần cứng
 

@@ -11,6 +11,7 @@ import shutil
 import subprocess
 import sys
 import tempfile
+import time
 import unittest
 import xml.etree.ElementTree as ET
 
@@ -173,6 +174,101 @@ else:
             self.assertEqual(subprocess.run(command+['physical'],env=env).returncode,0)
             calls=[json.loads(line) for line in log.read_text().splitlines()]
             self.assertEqual(calls,[['--output','DP-9','--auto','--primary','--pos','0x0'],['--output','HDMI-9','--off']])
+
+    def test_display_status_reports_actual_layout_without_changing_outputs(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            folder=Path(tmp);home=folder/'user';self.install(home)
+            config=home/'.config/eww/settings.toml'
+            config.write_text(config.read_text().replace('physical_output = "DP-4"','physical_output = "DP-9"').replace('virtual_output = "HDMI-0"','virtual_output = "HDMI-9"'))
+            bindir=folder/'bin';bindir.mkdir();query=folder/'query'
+            xrandr=bindir/'xrandr'
+            xrandr.write_text('''#!/usr/bin/env python3
+import os,sys
+from pathlib import Path
+assert sys.argv[1:] == ['--query'], 'Status must never mutate the display layout'
+if os.environ.get('FAIL_QUERY'):sys.exit(1)
+print(Path(os.environ['DISPLAY_QUERY']).read_text())
+''');xrandr.chmod(0o755)
+            env={**os.environ,'HOME':str(home),'MISERABLE_CONFIG':str(config),
+                 'PATH':str(bindir)+os.pathsep+os.environ['PATH'],'DISPLAY_QUERY':str(query)}
+            command=[str(home/'.local/bin/toggle-rustdesk-display'),'status','--json']
+            layouts=[
+                ('DP-9 connected primary 2560x1440-2560+0\nHDMI-9 connected', 'physical','virtual',True,'2560x1440'),
+                ('DP-9 connected\nHDMI-9 connected primary 1920x1080+0-1080', 'virtual','physical',True,'1920x1080'),
+                ('DP-9 connected 2560x1440+0+0\nHDMI-9 connected 1920x1080+2560+0', 'both','virtual',True,'DP-9 + HDMI-9'),
+                ('DP-9 disconnected\nHDMI-9 connected 1920x1080+0+0', 'virtual','physical',False,'1920x1080'),
+                ('eDP-1 connected primary 1920x1200+0+0', 'other','physical',False,'eDP-1'),
+                ('DP-9 disconnected\nHDMI-9 connected', 'other','physical',False,'Không có màn hình'),
+            ]
+            for layout,mode,target,can_switch,label in layouts:
+                with self.subTest(mode=mode,layout=layout):
+                    query.write_text(layout)
+                    status=json.loads(subprocess.check_output(command,env=env,text=True))
+                    self.assertEqual((status['mode'],status['target'],status['can_switch']),(mode,target,can_switch))
+                    self.assertIn(label,status['label'])
+            result=subprocess.run(command,env={**env,'FAIL_QUERY':'1'},capture_output=True,text=True)
+            self.assertNotEqual(result.returncode,0)
+            self.assertIn('Không đọc được trạng thái',result.stderr)
+
+    def test_display_notifications_follow_real_state_after_switch_and_failure(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            folder=Path(tmp);home=folder/'user';self.install(home)
+            bindir=folder/'bin';bindir.mkdir();state=folder/'state';notifications=folder/'notifications'
+            state.write_text(json.dumps({'DP-4':True,'HDMI-0':False}))
+            xrandr=bindir/'xrandr'
+            xrandr.write_text('''#!/usr/bin/env python3
+import json,os,sys
+from pathlib import Path
+file=Path(os.environ['DISPLAY_STATE']);state=json.loads(file.read_text())
+if sys.argv[1:]==['--query']:
+ for name,active in state.items():print(name+' connected'+(' 1920x1080+0+0' if active else ''))
+else:
+ if os.environ.get('FAIL_ENABLE') and '--auto' in sys.argv:sys.exit(1)
+ if os.environ.get('FAIL_DISABLE') and '--off' in sys.argv:sys.exit(1)
+ state[sys.argv[2]]='--off' not in sys.argv
+ file.write_text(json.dumps(state))
+''');xrandr.chmod(0o755)
+            notify=bindir/'notify-send'
+            notify.write_text('''#!/usr/bin/env python3
+import json,os,sys
+from pathlib import Path
+with Path(os.environ['NOTIFICATION_LOG']).open('a') as file:file.write(json.dumps(sys.argv[1:])+'\\n')
+''');notify.chmod(0o755)
+            env={**os.environ,'HOME':str(home),'XDG_RUNTIME_DIR':tmp,
+                 'PATH':str(bindir)+os.pathsep+os.environ['PATH'],'DISPLAY_STATE':str(state),
+                 'NOTIFICATION_LOG':str(notifications)}
+            env.pop('MISERABLE_CONFIG',None)
+            command=[str(home/'.local/bin/toggle-rustdesk-display')]
+            def switch(*args, **extra):
+                result=subprocess.run(command+list(args),env={**env,**extra},capture_output=True,text=True)
+                # The helper deliberately releases its lock before notifying asynchronously.
+                for _ in range(100):
+                    if notifications.exists():break
+                    time.sleep(.02)
+                self.assertTrue(notifications.exists(),'No display notification was sent')
+                return result
+            result=switch()
+            self.assertEqual(result.returncode,0,result.stderr)
+            self.assertEqual(json.loads(state.read_text()),{'DP-4':False,'HDMI-0':True})
+            args=json.loads(notifications.read_text().splitlines()[-1])
+            self.assertIn('Màn hình ảo · HDMI-0 · 1920x1080',args[-1])
+            notifications.unlink()
+            result=switch('physical',FAIL_ENABLE='1')
+            self.assertNotEqual(result.returncode,0)
+            self.assertEqual(json.loads(state.read_text()),{'DP-4':False,'HDMI-0':True})
+            args=json.loads(notifications.read_text().splitlines()[-1])
+            self.assertIn('critical',args)
+            self.assertEqual(args[-2],'Không thể hoàn tất chuyển màn hình')
+            self.assertIn('Màn hình ảo',args[-1])
+            notifications.unlink()
+            self.assertNotEqual(switch('physical',FAIL_DISABLE='1').returncode,0)
+            self.assertEqual(json.loads(state.read_text()),{'DP-4':True,'HDMI-0':True})
+            args=json.loads(notifications.read_text().splitlines()[-1])
+            self.assertIn('critical',args)
+            self.assertIn('Màn hình thật và ảo',args[-1])
+            notifications.unlink()
+            self.assertEqual(switch('physical').returncode,0)
+            self.assertIn('Màn hình thật',json.loads(notifications.read_text().splitlines()[-1])[-1])
 
     def test_weather_uses_config_and_updates_label_without_refetch(self):
         with tempfile.TemporaryDirectory() as tmp:

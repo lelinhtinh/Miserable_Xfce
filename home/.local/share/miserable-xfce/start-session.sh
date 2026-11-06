@@ -2,7 +2,7 @@
 set -euo pipefail
 [[ ${XDG_SESSION_TYPE:-x11} == x11 ]] || exit 0
 [[ -n ${DISPLAY:-} ]] || exit 1
-services=(cortile.service skippy-overview.service miserable-sidebar-anchor.service whisker-win-key.service)
+services=(cortile.service skippy-overview.service miserable-sidebar-anchor.service whisker-win-key.service miserable-display-tray.service)
 # Migrate previously enabled units: XFCE autostart must import the X11 environment first.
 for service in "${services[@]}"; do
  legacy="$HOME/.config/systemd/user/default.target.wants/$service"

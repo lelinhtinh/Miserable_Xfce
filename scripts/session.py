@@ -13,7 +13,7 @@ from xfconf import apply_channel, reset
 
 ROOT=Path(__file__).resolve().parents[1]
 HOME=Path.home()
-SERVICES=['cortile','skippy-overview','miserable-sidebar-anchor','whisker-win-key']
+SERVICES=['cortile','skippy-overview','miserable-sidebar-anchor','whisker-win-key','miserable-display-tray']
 
 def run(*args, check=True):
     return subprocess.run([str(a) for a in args],check=check,capture_output=True,text=True)
