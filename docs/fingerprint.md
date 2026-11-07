@@ -17,6 +17,16 @@ Build lấy source cố định, kiểm checksum doctest v2.4.12 (giấy phép M
 
 Máy nguồn đã có `pam_fprintd` trong cấu hình xác thực và có mật khẩu dự phòng. Máy mới cần kiểm tra cấu hình PAM của distro trước khi dùng vân tay đăng nhập; bộ cài này không tự thêm luật PAM dùng chung cho mọi máy.
 
+Thời gian chờ của `pam_fprintd` mặc định là 30 giây. Để tăng lên 60 giây, thêm `timeout=60` ngay sau `pam_fprintd.so` trên dòng xác thực hiện có trong `/etc/pam.d/system-auth`, giữ nguyên control field và các tham số khác. Không thêm dòng PAM thứ hai. Khi không chỉ định `max-tries`, giới hạn vẫn là 3 lần thử sai; xác thực có thể kết thúc trước 60 giây nếu đã hết số lần thử. Cấu hình này dùng chung cho LightDM và các dịch vụ đang include cùng PAM stack, nên cũng có thể kéo dài thời gian chuyển sang mật khẩu dự phòng. Thay đổi có hiệu lực ở lượt xác thực mới, không cần restart LightDM.
+
+Máy nguồn đã áp dụng ngày 07/11/2026, với dòng PAM hiện tại:
+
+```text
+auth       [success=2 default=ignore]  pam_fprintd.so timeout=60
+```
+
+Control field trên thuộc stack của máy nguồn; trên máy khác chỉ sửa tham số timeout của dòng đã có. Bản sao trước đổi timeout nằm tại `/var/backups/fingerprint-timeout-20261107-szaunsmn/system-auth` trên máy nguồn. Để trở lại mặc định 30 giây, bỏ riêng `timeout=60`; không thay các luật PAM khác.
+
 Đăng ký **chỉ một ngón** cho cả lượt, nhấc hẳn tay giữa các lần chạm. Giữ ngón giữa cảm biến khoảng hai giây khi xác thực:
 
 ```bash
@@ -24,7 +34,7 @@ fprintd-enroll -f right-index-finger "$USER"
 fprintd-verify -f right-index-finger "$USER"
 ```
 
-[Fingwit](https://github.com/linuxmint/fingwit) là GUI đăng ký/xóa vân tay qua fprintd. Máy nguồn đã cài và mở được Fingwit 1.1.1-2 từ AUR, hiển thị cảm biến và ngón đã lưu. Mục bật/tắt xác thực của phiên bản này dùng `pam-auth-update` của Debian, không phù hợp CachyOS; dùng cấu hình PAM của distro. Việc nhận vân tay không cung cấp mật khẩu để giải mã GNOME Keyring: keyring vẫn có thể hỏi mật khẩu ở lần đăng nhập đầu.
+[Fingwit](https://github.com/linuxmint/fingwit) là GUI đăng ký/xóa vân tay qua fprintd. Máy nguồn đã cài và mở được Fingwit 1.1.1-2 từ AUR, hiển thị cảm biến và ngón đã lưu. Mục bật/tắt xác thực của phiên bản này dùng `pam-auth-update` của Debian, không phù hợp CachyOS; dùng cấu hình PAM của distro. Việc nhận vân tay không cung cấp mật khẩu để giải mã GNOME Keyring. Có thể cài thêm [bộ mở keyring bằng TPM](keyring-tpm.md) để giữ mã hóa mà không phải gõ mật khẩu mỗi lần đăng nhập.
 
 Để trở về thư viện chính thức, dừng fprintd, di chuyển riêng `/etc/systemd/system/fprintd.service.d/60-elan-0c3d-sigfm.conf` ra ngoài, chạy `systemctl daemon-reload` rồi khởi động fprintd. Mẫu SIGFM còn được giữ dưới ID riêng. Nếu đã có bản tùy chỉnh trước khi cài, khôi phục file từ thư mục backup được script in ra. Cập nhật OpenCV/fprintd có thể cần build lại thư viện.
 
